@@ -7,11 +7,7 @@ use Illuminate\Database\Seeder;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Produksi: hanya akun admin untuk login.
-     *
-     * Data contoh (demo) bisa diisi manual bila perlu:
-     *   php artisan db:seed --class=MasterSeeder
-     *   php artisan db:seed --class=TransaksiSeeder
+     * Hanya membuat akun admin untuk login (tanpa data contoh).
      */
     public function run(): void
     {

@@ -9,7 +9,7 @@ Laravel 12 · MySQL · Blade + Bootstrap 5 · dompdf · Laravel Excel.
 composer install
 cp .env.example .env          # atur DB_DATABASE, DB_USERNAME, DB_PASSWORD
 php artisan key:generate
-php artisan migrate --seed    # admin + data dummy 3 bulan terakhir
+php artisan migrate --seed    # hanya akun admin untuk login
 php artisan serve             # http://127.0.0.1:8000
 ```
 
@@ -18,8 +18,7 @@ Login: **admin@admin.com / password** (segera ganti di menu User).
 Tidak perlu `npm`: Bootstrap, ikon, SweetAlert2, dan Tom Select dimuat dari CDN;
 kustomisasi ada di `public/css/app.css` dan `public/js/app.js`.
 
-Reset data dummy: `php artisan migrate:fresh --seed` (**menghapus semua data**).
-Hanya akun admin: `php artisan migrate:fresh --seeder=AdminSeeder`.
+Reset database: `php artisan migrate:fresh --seed --force` (**menghapus semua data**, sisa akun admin saja).
 
 ## Aturan bisnis penting
 

@@ -34,7 +34,7 @@
     @foreach ($rows as $r)
         <tr>
             <td>{{ $loop->iteration }}</td>
-            <td>
+            <td {!! sel_warna($r->warna) !!}>
                 @if ($html)
                     <a href="{{ request()->fullUrlWithQuery(['supplier_id' => [$r->id]]) }}" class="text-decoration-none fw-semibold" title="Lihat rincian">
                         <x-supplier :nama="$r->nama" :warna="$r->warna" />

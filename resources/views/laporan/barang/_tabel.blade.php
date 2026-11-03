@@ -15,7 +15,7 @@
     </table>
 @endif
 
-@if ($html) <div class="card"><div class="table-responsive"> @endif
+@if ($html) <div class="card mb-3"><div class="table-responsive"> @endif
 <table class="{{ $html ? 'table table-hover align-middle' : 'tabel' }}">
     <thead>
     <tr>
@@ -37,7 +37,7 @@
     @foreach ($rows as $r)
         <tr>
             <td>{{ $loop->iteration }}</td>
-            <td class="{{ $html ? 'fw-semibold' : '' }}">{{ $r->nama }}</td>
+            <td {!! sel_warna($r->supplier?->warna) !!}>@if ($html)<span class="fw-semibold">{{ $r->nama }}</span>@else{{ $r->nama }}@endif</td>
             <td><x-supplier :nama="$r->supplier?->nama" :warna="$r->supplier?->warna" :mode="$mode" /></td>
             <td class="num">{{ $r->nota }}</td>
             <td class="num">{{ $opsi->qty($r->qty, $r->satuan, $mode) }}</td>
@@ -65,6 +65,8 @@
     </tfoot>
 </table>
 @if ($html) </div></div> @endif
+
+@include('laporan._legenda', ['legenda' => $rows->pluck('supplier')])
 
 @if ($html)
     <p class="small text-secondary mt-3 mb-0">

@@ -78,3 +78,40 @@ if (! function_exists('tanggal')) {
         return $tanggal->locale('id')->translatedFormat($format);
     }
 }
+
+if (! function_exists('warna_lembut')) {
+    /**
+     * Versi muda dari warna supplier (dicampur putih) supaya teks tetap terbaca.
+     * Contoh: "#22c55e" -> "#90e2af". Warna tidak valid -> null.
+     */
+    function warna_lembut(?string $hex, float $kadar = 0.5): ?string
+    {
+        if (! $hex || ! preg_match('/^#[0-9a-fA-F]{6}$/', $hex)) {
+            return null;
+        }
+
+        $hasil = '#';
+        foreach (str_split(substr($hex, 1), 2) as $kanal) {
+            $hasil .= sprintf('%02x', (int) round(hexdec($kanal) * $kadar + 255 * (1 - $kadar)));
+        }
+
+        return $hasil;
+    }
+}
+
+if (! function_exists('sel_warna')) {
+    /**
+     * Atribut <td> berlatar warna supplier, untuk web, PDF, dan Excel.
+     * Pakai: <td {!! sel_warna($supplier?->warna) !!}>
+     */
+    function sel_warna(?string $hex): string
+    {
+        $bg = warna_lembut($hex);
+        if (! $bg) {
+            return '';
+        }
+
+        // --bs-table-bg: agar tidak ditimpa latar tabel Bootstrap; bgcolor: dibaca export Excel
+        return 'class="sel-warna" bgcolor="'.$bg.'" style="--bs-table-bg: '.$bg.'; background-color: '.$bg.'"';
+    }
+}

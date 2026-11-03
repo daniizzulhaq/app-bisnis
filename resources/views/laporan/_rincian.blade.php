@@ -47,7 +47,7 @@
                 </td>
                 @if ($kolomPihak === 'klien') <td>{{ $d->transaksi->klien->nama }}</td> @endif
                 @if ($kolomPihak === 'supplier') <td><x-supplier :nama="$d->supplier->nama" :warna="$d->supplier->warna" :mode="$mode" /></td> @endif
-                <td>{{ $d->barang->nama }}</td>
+                <td {!! sel_warna($d->supplier?->warna) !!}>{{ $d->barang->nama }}</td>
                 <td class="num">{{ $opsi->qty($d->qty, $d->barang->satuan, $mode) }}</td>
                 @if ($kolomSatuan) <td>{{ $d->barang->satuan }}</td> @endif
                 @if ($opsi->beli())
@@ -80,3 +80,7 @@
     </table>
     @if ($html) </div></div> @endif
 @endforeach
+
+@if ($rincian->isNotEmpty())
+    @include('laporan._legenda', ['legenda' => $rincian->flatMap(fn ($g) => $g->items->pluck('supplier'))])
+@endif

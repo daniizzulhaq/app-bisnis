@@ -16,6 +16,9 @@
         table.tabel th { background: #eef1fe; text-align: left; padding: 5px 6px; font-size: 8.5px; text-transform: uppercase; border: 1px solid #d9dce6; }
         table.tabel td { padding: 5px 6px; border: 1px solid #e5e7ef; }
         table.tabel .num { text-align: right; white-space: nowrap; }
+        .legenda { font-size: 8.5px; color: #555; margin: 2px 0 10px; }
+        .legenda-item { display: inline-block; margin: 0 10px 3px 0; white-space: nowrap; }
+        .legenda-kotak { display: inline-block; width: 10px; height: 8px; border: 1px solid; margin-right: 3px; vertical-align: -1px; }
         table.tabel tr.total td { background: #f5f6fa; font-weight: bold; }
         .footer { position: fixed; bottom: -10px; left: 0; right: 0; font-size: 8px; color: #8a8fa3; }
     </style>

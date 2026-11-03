@@ -56,7 +56,7 @@
             @endif
             <div class="col-6 col-md-3 col-xl-2">
                 <label class="form-label" for="f-qty">Format Qty</label>
-                <select id="f-qty" name="qty" class="form-select" title="Pakai satuan: 12,5 kg · Angka saja: 12,5 · 2 desimal: 12,50 kg">
+                <select id="f-qty" name="qty" class="form-select" title="Barang yang dipesan lebih dari sekali di tanggal yang sama · Total: 2 kg · 1 + 1: 1 kg + 1 kg">
                     @foreach (\App\Support\OpsiLaporan::FORMAT_QTY as $val => $label)
                         <option value="{{ $val }}" @selected($opsi->formatQty === $val)>{{ $label }}</option>
                     @endforeach
@@ -64,7 +64,7 @@
             </div>
             <div class="col-6 col-md-3 col-xl-2">
                 <label class="form-label" for="f-harga">Mode Harga</label>
-                <select id="f-harga" name="harga" class="form-select" title="Lengkap: beli, jual & laba · Jual saja: untuk dikirim ke klien · Beli saja: untuk supplier">
+                <select id="f-harga" name="harga" class="form-select" title="Lengkap: beli, jual & laba · Jual saja: untuk dikirim ke klien · Beli saja: untuk supplier · Tanpa harga: hanya barang & qty">
                     @foreach (\App\Support\OpsiLaporan::MODE_HARGA as $val => $label)
                         <option value="{{ $val }}" @selected($opsi->modeHarga === $val)>{{ $label }}</option>
                     @endforeach

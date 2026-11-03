@@ -5,7 +5,7 @@
 @php
     $uang = fn ($v) => $mode === 'excel' ? round((float) $v) : rupiah($v);
     $html = $mode === 'html';
-    $kolomSatuan = $mode === 'excel' && $opsi->pakaiSatuan();
+    $kolomSatuan = $mode === 'excel'; // Excel: satuan di kolom tersendiri
     // Jumlah kolom sebelum kolom harga (untuk colspan baris total)
     $kiri = 4 + ($kolomPihak ? 1 : 0) + ($kolomSatuan ? 1 : 0);
     $kolomTotal = $kiri + ($opsi->beli() ? 2 : 0) + ($opsi->jual() ? 2 : 0) + ($opsi->laba() ? 1 : 0);
@@ -48,7 +48,7 @@
                 @if ($kolomPihak === 'klien') <td>{{ $d->transaksi->klien->nama }}</td> @endif
                 @if ($kolomPihak === 'supplier') <td><x-supplier :nama="$d->supplier->nama" :warna="$d->supplier->warna" :mode="$mode" /></td> @endif
                 <td {!! sel_warna($d->supplier?->warna) !!}>{{ $d->barang->nama }}</td>
-                <td class="num">{{ $opsi->qty($d->qty, $d->barang->satuan, $mode) }}</td>
+                <td class="num">{{ $opsi->qty($d->qty, $d->barang->satuan, $mode, $d->pecahan ?? []) }}</td>
                 @if ($kolomSatuan) <td>{{ $d->barang->satuan }}</td> @endif
                 @if ($opsi->beli())
                     <td class="num">{{ $uang($d->harga_beli) }}</td>
@@ -67,7 +67,7 @@
             <tr><td colspan="{{ $kolomTotal }}" class="text-center">Tidak ada item pada periode ini.</td></tr>
         @endforelse
         </tbody>
-        @if ($grup->items->isNotEmpty())
+        @if ($grup->items->isNotEmpty() && $opsi->adaHarga())
             <tfoot>
             <tr class="{{ $html ? 'table-light fw-bold' : 'total' }}">
                 <td colspan="{{ $kiri }}"><b>TOTAL</b></td>

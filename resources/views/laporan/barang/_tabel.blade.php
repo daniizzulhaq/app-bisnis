@@ -3,7 +3,7 @@
     $uang = fn ($v) => $mode === 'excel' ? round((float) $v) : rupiah($v);
     $persen = fn ($v) => $mode === 'excel' ? round($v, 1) : angka($v, 1).'%';
     $html = $mode === 'html';
-    $kolomSatuan = $mode === 'excel' && $opsi->pakaiSatuan();
+    $kolomSatuan = $mode === 'excel'; // Excel: satuan di kolom tersendiri
     $kiri = 5 + ($kolomSatuan ? 1 : 0);
 @endphp
 
@@ -51,6 +51,7 @@
         </tr>
     @endforeach
     </tbody>
+    @if ($opsi->adaHarga())
     <tfoot>
     <tr class="{{ $html ? 'table-light fw-bold' : 'total' }}">
         <td></td>
@@ -63,6 +64,7 @@
         @endif
     </tr>
     </tfoot>
+    @endif
 </table>
 @if ($html) </div></div> @endif
 

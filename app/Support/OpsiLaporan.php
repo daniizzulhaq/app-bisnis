@@ -10,23 +10,28 @@ use Illuminate\Http\Request;
  */
 class OpsiLaporan
 {
+    /**
+     * Barang yang sama dipesan beberapa kali di tanggal yang sama (mis. pesanan awal + tambahan):
+     *  - total   : dijumlah -> "2 kg"
+     *  - rincian : dirinci per pesanan -> "1 kg + 1 kg"
+     */
     public const FORMAT_QTY = [
-        'satuan' => 'Pakai satuan',
-        'angka' => 'Angka saja',
-        'desimal' => '2 desimal',
+        'total' => 'Total',
+        'rincian' => '1 + 1',
     ];
 
     public const MODE_HARGA = [
         'lengkap' => 'Lengkap',
         'jual' => 'Jual saja',
         'beli' => 'Beli saja',
+        'tanpa' => 'Tanpa harga',
     ];
 
     public function __construct(
         public array $klienIds = [],
         public array $supplierIds = [],
         public array $barangIds = [],
-        public string $formatQty = 'satuan',
+        public string $formatQty = 'total',
         public string $modeHarga = 'lengkap',
     ) {
     }
@@ -34,13 +39,13 @@ class OpsiLaporan
     public static function dariRequest(Request $request, string $modeDefault = 'lengkap'): self
     {
         $mode = $request->input('harga', $modeDefault);
-        $format = $request->input('qty', 'satuan');
+        $format = $request->input('qty', 'total');
 
         return new self(
             self::ids($request->input('klien_id')),
             self::ids($request->input('supplier_id')),
             self::ids($request->input('barang_id')),
-            array_key_exists($format, self::FORMAT_QTY) ? $format : 'satuan',
+            array_key_exists($format, self::FORMAT_QTY) ? $format : 'total',
             array_key_exists($mode, self::MODE_HARGA) ? $mode : $modeDefault,
         );
     }
@@ -56,12 +61,18 @@ class OpsiLaporan
 
     public function beli(): bool
     {
-        return $this->modeHarga !== 'jual';
+        return in_array($this->modeHarga, ['lengkap', 'beli'], true);
     }
 
     public function jual(): bool
     {
-        return $this->modeHarga !== 'beli';
+        return in_array($this->modeHarga, ['lengkap', 'jual'], true);
+    }
+
+    /** Mode "Tanpa harga": hanya barang & qty (mis. untuk surat jalan / cek barang). */
+    public function adaHarga(): bool
+    {
+        return $this->modeHarga !== 'tanpa';
     }
 
     public function laba(): bool
@@ -69,27 +80,24 @@ class OpsiLaporan
         return $this->modeHarga === 'lengkap';
     }
 
-    /** Satuan ditampilkan (untuk Excel: kolom terpisah). */
-    public function pakaiSatuan(): bool
+    public function rinci(): bool
     {
-        return $this->formatQty !== 'angka';
+        return $this->formatQty === 'rincian';
     }
 
     /**
-     * Format qty sesuai opsi. Excel selalu angka mentah agar bisa dihitung.
+     * Format qty. $pecahan = qty tiap pesanan bila barang dipesan lebih dari sekali di tanggal yang sama.
+     * Excel: angka mentah (format Total) agar bisa dihitung; satuan ada di kolom tersendiri.
      */
-    public function qty(float|string|null $nilai, ?string $satuan, string $mode): string|float
+    public function qty(float|string|null $nilai, ?string $satuan, string $mode, array $pecahan = []): string|float
     {
-        $nilai = (float) $nilai;
+        $satuan = $mode === 'excel' ? null : $satuan;
+        $teks = fn ($v) => angka($v).($satuan ? ' '.$satuan : '');
 
-        if ($mode === 'excel') {
-            return round($nilai, 2);
+        if ($this->rinci() && count($pecahan) > 1) {
+            return implode(' + ', array_map($teks, $pecahan)); // "1 kg + 1 kg"
         }
 
-        $teks = $this->formatQty === 'desimal'
-            ? number_format($nilai, 2, ',', '.')
-            : angka($nilai);
-
-        return $this->pakaiSatuan() && $satuan ? $teks.' '.$satuan : $teks;
+        return $mode === 'excel' ? round((float) $nilai, 2) : $teks($nilai);
     }
 }

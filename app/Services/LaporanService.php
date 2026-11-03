@@ -194,6 +194,7 @@ class LaporanService
             ->orderBy('transaksis.tanggal')->orderBy('transaksi_details.transaksi_id')->orderBy('transaksi_details.id')
             ->get();
 
+        $items = $this->gabungPerTanggal($items);
         $ids = $kunci === 'klien_id' ? $o->klienIds : $o->supplierIds;
 
         return collect($ids)
@@ -203,6 +204,27 @@ class LaporanService
                 'items' => $items->where($kunci, $id)->values(),
             ])
             ->sortBy('nama')->values();
+    }
+
+    /**
+     * Barang yang sama (klien, supplier & harga sama) di tanggal yang sama digabung jadi satu baris,
+     * mis. pesanan awal + tambahan. Qty tiap pesanan disimpan di atribut "pecahan" (untuk format 1 + 1).
+     */
+    private function gabungPerTanggal(Collection $items): Collection
+    {
+        return $items
+            ->groupBy(fn ($d) => implode('|', [$d->tanggal, $d->klien_id, $d->barang_id, $d->supplier_id,
+                (float) $d->harga_beli, (float) $d->harga_jual]))
+            ->map(function (Collection $grup) {
+                $baris = clone $grup->first();
+                $baris->qty = $grup->sum(fn ($d) => (float) $d->qty);
+                $baris->subtotal_beli = $grup->sum(fn ($d) => (float) $d->subtotal_beli);
+                $baris->subtotal_jual = $grup->sum(fn ($d) => (float) $d->subtotal_jual);
+                $baris->pecahan = $grup->map(fn ($d) => (float) $d->qty)->all();
+
+                return $baris;
+            })
+            ->values();
     }
 
     /** Total pembayaran per pihak: [pihak_id => jumlah]. */

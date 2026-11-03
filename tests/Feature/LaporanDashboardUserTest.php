@@ -108,10 +108,27 @@ class LaporanDashboardUserTest extends TestCase
         $this->get("/laporan/klien?{$periode}&klien_id[]={$klien2->id}&harga=lengkap")
             ->assertSee('Rp 20.000')->assertSee('Laba');
 
-        // Format qty
-        $this->get("/laporan/barang?{$periode}&barang_id[]={$tomat->id}&qty=satuan")->assertSee('>2,5 kg<', false);
-        $this->get("/laporan/barang?{$periode}&barang_id[]={$tomat->id}&qty=desimal")->assertSee('>2,50 kg<', false);
-        $this->get("/laporan/barang?{$periode}&barang_id[]={$tomat->id}&qty=angka")->assertSee('>2,5<', false)->assertDontSee('>2,5 kg<', false);
+        // Mode tanpa harga: hanya barang & qty
+        $this->get("/laporan/klien?{$periode}&klien_id[]={$klien2->id}&harga=tanpa")->assertOk()
+            ->assertSee('Tomat')->assertSee('>2,5 kg<', false)
+            ->assertDontSee('Rp 27.500')->assertDontSee('Harga Jual')->assertDontSee('Harga Beli')->assertDontSee('Sisa Piutang');
+        foreach (['klien', 'supplier', 'barang'] as $jenis) {
+            $this->get("/laporan/{$jenis}?{$periode}&harga=tanpa")->assertOk()->assertDontSee('Total Jual')->assertDontSee('Total Beli');
+            $this->get("/laporan/{$jenis}?{$periode}&harga=tanpa&export=pdf")->assertOk();
+            $this->get("/laporan/{$jenis}?{$periode}&harga=tanpa&export=excel")->assertOk();
+        }
+
+        // Format qty: tomat dipesan lagi (tambahan) di tanggal yang sama -> digabung satu baris
+        app(TransaksiService::class)->simpan(['tanggal' => '2026-11-05', 'klien_id' => $klien2->id, 'items' => [
+            ['barang_id' => $tomat->id, 'supplier_id' => $supplier2->id, 'qty' => 1, 'harga_beli' => 8000, 'harga_jual' => 11000],
+        ]]);
+        $res = $this->get("/laporan/klien?{$periode}&klien_id[]={$klien2->id}&qty=total")
+            ->assertSee('>3,5 kg<', false)->assertDontSee('2,5 kg + 1 kg');
+        $this->assertCount(1, $res->viewData('rincian')->first()->items);
+        $this->get("/laporan/klien?{$periode}&klien_id[]={$klien2->id}&qty=rincian")
+            ->assertSee('>2,5 kg + 1 kg<', false)->assertSee('Rp 38.500');
+        $this->get("/laporan/klien?{$periode}&klien_id[]={$klien2->id}&qty=rincian&export=excel")->assertOk();
+        $this->get("/laporan/barang?{$periode}&barang_id[]={$tomat->id}")->assertSee('>3,5 kg<', false);
 
         // Laporan supplier multi pilih + warna supplier
         $res = $this->get("/laporan/supplier?{$periode}&supplier_id[]={$this->supplier->id}&supplier_id[]={$supplier2->id}");
@@ -135,7 +152,7 @@ class LaporanDashboardUserTest extends TestCase
 
         // Export dengan rincian (1 klien / 1 supplier dipilih)
         $this->get("/laporan/klien?klien_id={$this->klien->id}&export=excel")->assertOk();
-        $this->get("/laporan/supplier?supplier_id[]={$this->supplier->id}&harga=lengkap&qty=angka&export=pdf")->assertOk();
+        $this->get("/laporan/supplier?supplier_id[]={$this->supplier->id}&harga=lengkap&qty=rincian&export=pdf")->assertOk();
         $this->get("/laporan/barang?supplier_id[]={$this->supplier->id}&export=excel")->assertOk();
     }
 

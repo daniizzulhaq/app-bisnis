@@ -31,7 +31,7 @@ Reset database: `php artisan migrate:fresh --seed --force` (**menghapus semua da
 | Pembayaran klien | Tidak boleh melebihi sisa tagihan nota |
 | Cashflow | Dibuat/diubah/dihapus otomatis oleh `PembayaranObserver`; baris otomatis hanya bisa diubah dari menu Pembayaran |
 | Hapus | Master yang sudah dipakai, dan nota yang sudah punya pembayaran, tidak bisa dihapus |
-| Laporan | Total & "dibayar" = dalam periode; **sisa piutang/hutang = kumulatif s/d tanggal akhir periode**. Filter beberapa klien/supplier, format qty, mode harga (lengkap/jual/beli). PDF bisa dilihat dulu atau diunduh |
+| Laporan | Total & "dibayar" = dalam periode; **sisa piutang/hutang = kumulatif s/d tanggal akhir periode**. Filter beberapa klien/supplier, format qty (Total: 2 kg · 1 + 1: 1 kg + 1 kg untuk barang yang dipesan beberapa kali di hari yang sama), mode harga (lengkap/jual/beli). PDF bisa dilihat dulu atau diunduh |
 | Nota cetak | Hanya harga jual (harga beli & supplier tidak tampil ke klien) |
 
 ## Test

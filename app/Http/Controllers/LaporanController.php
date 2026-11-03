@@ -70,7 +70,7 @@ class LaporanController extends Controller
 
         if ($request->input('export') === 'pdf') {
             $pdf = Pdf::loadView('laporan.pdf', $data + ['mode' => 'pdf'])
-                ->setPaper('a4', $opsi->laba() || $jenis !== 'klien' ? 'landscape' : 'portrait');
+                ->setPaper('a4', $opsi->laba() || ($jenis !== 'klien' && $opsi->adaHarga()) ? 'landscape' : 'portrait');
 
             return $request->boolean('unduh') ? $pdf->download($namaFile.'.pdf') : $pdf->stream($namaFile.'.pdf');
         }

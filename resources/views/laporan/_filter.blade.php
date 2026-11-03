@@ -56,7 +56,7 @@
             @endif
             <div class="col-6 col-md-3 col-xl-2">
                 <label class="form-label" for="f-qty">Format Qty</label>
-                <select id="f-qty" name="qty" class="form-select" title="Barang yang dipesan lebih dari sekali di tanggal yang sama · Total: 2 kg · 1 + 1: 1 kg + 1 kg">
+                <select id="f-qty" name="qty" class="form-select" title="Barang yang dipesan lebih dari sekali di tanggal yang sama · Total: 2 kg · 1 + 1: 1 + 1 kg">
                     @foreach (\App\Support\OpsiLaporan::FORMAT_QTY as $val => $label)
                         <option value="{{ $val }}" @selected($opsi->formatQty === $val)>{{ $label }}</option>
                     @endforeach

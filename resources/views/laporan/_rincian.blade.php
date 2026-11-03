@@ -4,6 +4,10 @@
 --}}
 @php
     $uang = fn ($v) => $mode === 'excel' ? round((float) $v) : rupiah($v);
+    // Baris gabungan dengan harga berbeda: "Rp 60.000 / Rp 70.000"
+    $harga = fn ($v, $list) => count($list ?? []) > 1
+        ? implode(' / ', array_map(fn ($h) => $mode === 'excel' ? angka($h, 0) : rupiah($h), $list))
+        : $uang($v);
     $html = $mode === 'html';
     $kolomSatuan = $mode === 'excel'; // Excel: satuan di kolom tersendiri
     // Jumlah kolom sebelum kolom harga (untuk colspan baris total)
@@ -51,11 +55,11 @@
                 <td class="num">{{ $opsi->qty($d->qty, $d->barang->satuan, $mode, $d->pecahan ?? []) }}</td>
                 @if ($kolomSatuan) <td>{{ $d->barang->satuan }}</td> @endif
                 @if ($opsi->beli())
-                    <td class="num">{{ $uang($d->harga_beli) }}</td>
+                    <td class="num">{{ $harga($d->harga_beli, $d->harga_beli_list) }}</td>
                     <td class="num">{{ $uang($d->subtotal_beli) }}</td>
                 @endif
                 @if ($opsi->jual())
-                    <td class="num">{{ $uang($d->harga_jual) }}</td>
+                    <td class="num">{{ $harga($d->harga_jual, $d->harga_jual_list) }}</td>
                     <td class="num">{{ $uang($d->subtotal_jual) }}</td>
                 @endif
                 @if ($opsi->laba())

@@ -120,13 +120,13 @@ class LaporanDashboardUserTest extends TestCase
 
         // Format qty: tomat dipesan lagi (tambahan) di tanggal yang sama -> digabung satu baris
         app(TransaksiService::class)->simpan(['tanggal' => '2026-11-05', 'klien_id' => $klien2->id, 'items' => [
-            ['barang_id' => $tomat->id, 'supplier_id' => $supplier2->id, 'qty' => 1, 'harga_beli' => 8000, 'harga_jual' => 11000],
+            ['barang_id' => $tomat->id, 'supplier_id' => $supplier2->id, 'qty' => 1, 'harga_beli' => 8000, 'harga_jual' => 12000],
         ]]);
         $res = $this->get("/laporan/klien?{$periode}&klien_id[]={$klien2->id}&qty=total")
-            ->assertSee('>3,5 kg<', false)->assertDontSee('2,5 kg + 1 kg');
+            ->assertSee('>3,5 kg<', false)->assertDontSee('2,5 + 1 kg')->assertSee('Rp 11.000 / Rp 12.000');
         $this->assertCount(1, $res->viewData('rincian')->first()->items);
         $this->get("/laporan/klien?{$periode}&klien_id[]={$klien2->id}&qty=rincian")
-            ->assertSee('>2,5 kg + 1 kg<', false)->assertSee('Rp 38.500');
+            ->assertSee('>2,5 + 1 kg<', false)->assertSee('Rp 39.500');
         $this->get("/laporan/klien?{$periode}&klien_id[]={$klien2->id}&qty=rincian&export=excel")->assertOk();
         $this->get("/laporan/barang?{$periode}&barang_id[]={$tomat->id}")->assertSee('>3,5 kg<', false);
 

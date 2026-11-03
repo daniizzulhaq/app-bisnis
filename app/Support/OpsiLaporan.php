@@ -13,7 +13,7 @@ class OpsiLaporan
     /**
      * Barang yang sama dipesan beberapa kali di tanggal yang sama (mis. pesanan awal + tambahan):
      *  - total   : dijumlah -> "2 kg"
-     *  - rincian : dirinci per pesanan -> "1 kg + 1 kg"
+     *  - rincian : dirinci per pesanan -> "1 + 1 kg"
      */
     public const FORMAT_QTY = [
         'total' => 'Total',
@@ -91,13 +91,12 @@ class OpsiLaporan
      */
     public function qty(float|string|null $nilai, ?string $satuan, string $mode, array $pecahan = []): string|float
     {
-        $satuan = $mode === 'excel' ? null : $satuan;
-        $teks = fn ($v) => angka($v).($satuan ? ' '.$satuan : '');
+        $satuan = $mode === 'excel' || ! $satuan ? '' : ' '.$satuan;
 
         if ($this->rinci() && count($pecahan) > 1) {
-            return implode(' + ', array_map($teks, $pecahan)); // "1 kg + 1 kg"
+            return implode(' + ', array_map(fn ($v) => angka($v), $pecahan)).$satuan; // "6 + 2 kg"
         }
 
-        return $mode === 'excel' ? round((float) $nilai, 2) : $teks($nilai);
+        return $mode === 'excel' ? round((float) $nilai, 2) : angka($nilai).$satuan;
     }
 }

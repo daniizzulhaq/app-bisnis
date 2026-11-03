@@ -91,6 +91,11 @@ class MasterDataTest extends TestCase
         $this->delete("/supplier/{$sari->id}")->assertRedirect('/supplier');
         $this->assertDatabaseHas('barangs', ['nama' => 'Bayam', 'deleted_at' => null]);
         $this->get('/barang?supplier=tanpa')->assertSee('Bayam')->assertSee('Kol');
+        // Pencarian di halaman barang (join supplier) tidak error kolom ambigu
+        $this->get('/barang?q=bayam')->assertOk()->assertSee('Bayam')->assertDontSee('>Kol<', false);
+        $this->get('/barang?q=bayam&supplier=tanpa')->assertOk()->assertSee('Bayam');
+        $this->get('/supplier?q=sari')->assertOk();
+        $this->get('/klien?q=hotel')->assertOk();
     }
 
     public function test_validasi_bahasa_indonesia(): void

@@ -207,20 +207,22 @@ class LaporanService
     }
 
     /**
-     * Barang yang sama (klien, supplier & harga sama) di tanggal yang sama digabung jadi satu baris,
-     * mis. pesanan awal + tambahan. Qty tiap pesanan disimpan di atribut "pecahan" (untuk format 1 + 1).
+     * Barang yang sama (klien & supplier sama) di tanggal yang sama digabung jadi satu baris,
+     * mis. pesanan awal + tambahan, walaupun harganya berbeda. Qty tiap pesanan disimpan di atribut
+     * "pecahan" (untuk format 1 + 1), harga yang berbeda di "harga_beli_list" / "harga_jual_list".
      */
     private function gabungPerTanggal(Collection $items): Collection
     {
         return $items
-            ->groupBy(fn ($d) => implode('|', [$d->tanggal, $d->klien_id, $d->barang_id, $d->supplier_id,
-                (float) $d->harga_beli, (float) $d->harga_jual]))
+            ->groupBy(fn ($d) => implode('|', [$d->tanggal, $d->klien_id, $d->barang_id, $d->supplier_id]))
             ->map(function (Collection $grup) {
                 $baris = clone $grup->first();
                 $baris->qty = $grup->sum(fn ($d) => (float) $d->qty);
                 $baris->subtotal_beli = $grup->sum(fn ($d) => (float) $d->subtotal_beli);
                 $baris->subtotal_jual = $grup->sum(fn ($d) => (float) $d->subtotal_jual);
                 $baris->pecahan = $grup->map(fn ($d) => (float) $d->qty)->all();
+                $baris->harga_beli_list = $grup->map(fn ($d) => (float) $d->harga_beli)->unique()->values()->all();
+                $baris->harga_jual_list = $grup->map(fn ($d) => (float) $d->harga_jual)->unique()->values()->all();
 
                 return $baris;
             })

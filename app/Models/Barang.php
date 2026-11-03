@@ -41,8 +41,8 @@ class Barang extends Model
     public function scopeCari(Builder $query, ?string $kata): Builder
     {
         return $query->when($kata, fn ($q) => $q->where(fn ($w) => $w
-            ->where('nama', 'like', "%{$kata}%")
-            ->orWhere('satuan', 'like', "%{$kata}%")));
+            ->where($this->getTable().'.nama', 'like', "%{$kata}%")
+            ->orWhere($this->getTable().'.satuan', 'like', "%{$kata}%")));
     }
 
     /** Margin default per satuan. */

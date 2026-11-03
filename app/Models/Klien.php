@@ -28,9 +28,9 @@ class Klien extends Model
     public function scopeCari(Builder $query, ?string $kata): Builder
     {
         return $query->when($kata, fn ($q) => $q->where(fn ($w) => $w
-            ->where('nama', 'like', "%{$kata}%")
-            ->orWhere('no_hp', 'like', "%{$kata}%")
-            ->orWhere('alamat', 'like', "%{$kata}%")));
+            ->where($this->getTable().'.nama', 'like', "%{$kata}%")
+            ->orWhere($this->getTable().'.no_hp', 'like', "%{$kata}%")
+            ->orWhere($this->getTable().'.alamat', 'like', "%{$kata}%")));
     }
 
     /**

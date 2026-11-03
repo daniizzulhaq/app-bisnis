@@ -6,12 +6,15 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Produksi: hanya akun admin untuk login.
+     *
+     * Data contoh (demo) bisa diisi manual bila perlu:
+     *   php artisan db:seed --class=MasterSeeder
+     *   php artisan db:seed --class=TransaksiSeeder
+     */
     public function run(): void
     {
-        $this->call([
-            AdminSeeder::class,
-            MasterSeeder::class,     // supplier sayur, barang, hotel & resto
-            TransaksiSeeder::class,  // nota, pembayaran, cashflow ~3 bulan terakhir
-        ]);
+        $this->call(AdminSeeder::class);
     }
 }

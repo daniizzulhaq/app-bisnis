@@ -73,7 +73,7 @@
 </table>
 @if ($html) </div></div> @endif
 
-@include('laporan._rincian', ['kolomPihak' => 'klien', 'judulRincian' => 'Barang dari'])
+@include('laporan._rincian', ['kolomPihak' => $opsi->tampilKlien ? 'klien' : null, 'judulRincian' => 'Barang dari'])
 
 @if ($html)
     <p class="small text-secondary mt-3 mb-0">

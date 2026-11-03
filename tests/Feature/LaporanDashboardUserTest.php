@@ -82,6 +82,33 @@ class LaporanDashboardUserTest extends TestCase
         $this->assertEquals(120000, $row->laba);
     }
 
+    public function test_laporan_supplier_gabung_semua_klien_tanpa_nama_klien(): void
+    {
+        $mamah = Supplier::create(['nama' => 'Mamah']);
+        $buncis = Barang::create(['nama' => 'Baby Buncis', 'satuan' => 'kg', 'supplier_id' => $mamah->id, 'harga_beli_default' => 50000, 'harga_jual_default' => 60000]);
+        $aston = Klien::create(['nama' => 'Aston']);
+        $cassa = Klien::create(['nama' => 'Cassa']);
+        $item = fn ($qty) => ['barang_id' => $buncis->id, 'supplier_id' => $mamah->id, 'qty' => $qty, 'harga_beli' => 50000, 'harga_jual' => 60000];
+        $svc = app(TransaksiService::class);
+        $svc->simpan(['tanggal' => '2026-11-06', 'klien_id' => $aston->id, 'items' => [$item(1), $item(1)]]);
+        $svc->simpan(['tanggal' => '2026-11-06', 'klien_id' => $cassa->id, 'items' => [$item(3)]]);
+        $url = "/laporan/supplier?dari=2026-11-01&sampai=2026-11-30&supplier_id[]={$mamah->id}&qty=rincian";
+
+        // Default: nama klien disembunyikan, qty semua klien digabung
+        $res = $this->get($url)->assertOk()->assertSee('>1 + 1 + 3 kg<', false);
+        $this->assertCount(1, $res->viewData('rincian')->first()->items);
+        // Tabel rincian (yang dicetak) tidak memuat nama klien
+        $tabel = view('laporan._rincian', ['rincian' => $res->viewData('rincian'), 'opsi' => $res->viewData('opsi'),
+            'mode' => 'pdf', 'kolomPihak' => null, 'judulRincian' => 'Barang dari'])->render();
+        $this->assertStringNotContainsString('Aston', $tabel);
+        $this->assertStringNotContainsString('Cassa', $tabel);
+        $this->get($url.'&export=pdf')->assertOk();
+
+        // Tampilkan klien: dipisah per klien
+        $res = $this->get($url.'&klien=tampil')->assertOk()->assertSee('>1 + 1 kg<', false)->assertSee('>3 kg<', false);
+        $this->assertCount(2, $res->viewData('rincian')->first()->items);
+    }
+
     public function test_laporan_multi_klien_supplier_mode_harga_dan_format_qty(): void
     {
         $klien2 = Klien::create(['nama' => 'Resto Melati']);

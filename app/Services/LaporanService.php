@@ -100,7 +100,7 @@ class LaporanService
 
         return [
             'rows' => $rows,
-            'rincian' => $o->supplierIds ? $this->rincian($dari, $sampai, $o, 'supplier_id', $supplier->pluck('nama', 'id')) : collect(),
+            'rincian' => $o->supplierIds ? $this->rincian($dari, $sampai, $o, 'supplier_id', $supplier->pluck('nama', 'id'), $o->tampilKlien) : collect(),
             'total' => $this->jumlahkan($rows, ['nota', 'qty', 'total_beli', 'total_jual', 'laba', 'dibayar', 'sisa']),
         ];
     }
@@ -180,7 +180,7 @@ class LaporanService
      * Rincian item per pihak terpilih (klien_id / supplier_id), mengikuti semua filter.
      * Hasil: [ ['id', 'nama', 'items' => Collection<TransaksiDetail>], ... ]
      */
-    private function rincian(string $dari, string $sampai, OpsiLaporan $o, string $kunci, Collection $nama): Collection
+    private function rincian(string $dari, string $sampai, OpsiLaporan $o, string $kunci, Collection $nama, bool $pisahKlien = true): Collection
     {
         $items = TransaksiDetail::query()
             ->select('transaksi_details.*', 'transaksis.tanggal', 'transaksis.klien_id')
@@ -194,7 +194,7 @@ class LaporanService
             ->orderBy('transaksis.tanggal')->orderBy('transaksi_details.transaksi_id')->orderBy('transaksi_details.id')
             ->get();
 
-        $items = $this->gabungPerTanggal($items);
+        $items = $this->gabungPerTanggal($items, $pisahKlien);
         $ids = $kunci === 'klien_id' ? $o->klienIds : $o->supplierIds;
 
         return collect($ids)
@@ -207,14 +207,14 @@ class LaporanService
     }
 
     /**
-     * Barang yang sama (klien & supplier sama) di tanggal yang sama digabung jadi satu baris,
+     * Barang yang sama (supplier sama; klien sama bila $pisahKlien) di tanggal yang sama digabung jadi satu baris,
      * mis. pesanan awal + tambahan, walaupun harganya berbeda. Qty tiap pesanan disimpan di atribut
      * "pecahan" (untuk format 1 + 1), harga yang berbeda di "harga_beli_list" / "harga_jual_list".
      */
-    private function gabungPerTanggal(Collection $items): Collection
+    private function gabungPerTanggal(Collection $items, bool $pisahKlien = true): Collection
     {
         return $items
-            ->groupBy(fn ($d) => implode('|', [$d->tanggal, $d->klien_id, $d->barang_id, $d->supplier_id]))
+            ->groupBy(fn ($d) => implode('|', [$d->tanggal, $pisahKlien ? $d->klien_id : '*', $d->barang_id, $d->supplier_id]))
             ->map(function (Collection $grup) {
                 $baris = clone $grup->first();
                 $baris->qty = $grup->sum(fn ($d) => (float) $d->qty);

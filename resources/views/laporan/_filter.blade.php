@@ -70,6 +70,15 @@
                     @endforeach
                 </select>
             </div>
+            @if ($jenis === 'supplier')
+                <div class="col-6 col-md-3 col-xl-2">
+                    <label class="form-label" for="f-tampil-klien">Nama Klien</label>
+                    <select id="f-tampil-klien" name="klien" class="form-select" title="Sembunyikan: qty barang dari semua klien digabung (mis. 1 + 1 + 3 kg) · Tampilkan: dipisah per klien">
+                        <option value="sembunyi" @selected(! $opsi->tampilKlien)>Sembunyikan</option>
+                        <option value="tampil" @selected($opsi->tampilKlien)>Tampilkan</option>
+                    </select>
+                </div>
+            @endif
             <div class="col-12 col-md-auto d-flex gap-2 filter-actions">
                 <a href="{{ url()->current() }}" class="btn btn-light">Reset</a>
                 <button class="btn btn-primary"><i class="bi bi-funnel me-1"></i> Terapkan</button>

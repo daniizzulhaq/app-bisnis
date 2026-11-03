@@ -33,6 +33,8 @@ class OpsiLaporan
         public array $barangIds = [],
         public string $formatQty = 'total',
         public string $modeHarga = 'lengkap',
+        // Laporan supplier: nama klien di rincian (default disembunyikan, qty semua klien digabung)
+        public bool $tampilKlien = false,
     ) {
     }
 
@@ -47,6 +49,7 @@ class OpsiLaporan
             self::ids($request->input('barang_id')),
             array_key_exists($format, self::FORMAT_QTY) ? $format : 'total',
             array_key_exists($mode, self::MODE_HARGA) ? $mode : $modeDefault,
+            $request->input('klien') === 'tampil',
         );
     }
 

@@ -1,22 +1,44 @@
 @extends('layouts.app')
 
 @section('title', 'Barang')
-@section('subtitle', 'Daftar sayur & harga default')
+@section('subtitle', 'Daftar sayur per supplier & harga default')
+
+@php
+    // Link klasifikasi tetap membawa kata kunci pencarian
+    $urlGrup = fn ($nilai) => route('barang.index', array_filter(['q' => request('q'), 'supplier' => $nilai]));
+    $tambahUrl = route('barang.create', is_numeric($pilih) ? ['supplier' => $pilih] : []);
+@endphp
 
 @section('content')
     @include('partials.search-bar', [
         'placeholder' => 'Cari nama barang atau satuan...',
-        'tambahUrl' => route('barang.create'),
+        'tambahUrl' => $tambahUrl,
         'tambahLabel' => 'Tambah Barang',
+        'tersembunyi' => ['supplier' => $pilih],
     ])
+
+    {{-- Klasifikasi barang per supplier --}}
+    <div class="grup-supplier d-flex flex-wrap gap-2 mb-3">
+        <a href="{{ $urlGrup(null) }}" class="btn btn-sm {{ $pilih === null || $pilih === '' ? 'btn-primary' : 'btn-light' }}">
+            Semua <span class="badge rounded-pill bg-white text-dark ms-1">{{ $jumlahSemua }}</span>
+        </a>
+        @foreach ($suppliers as $s)
+            <a href="{{ $urlGrup($s->id) }}" class="btn btn-sm btn-light chip-supplier {{ (string) $pilih === (string) $s->id ? 'aktif' : '' }}" style="--sw: {{ $s->warna }}">
+                <i></i>{{ $s->nama }} <span class="badge rounded-pill ms-1">{{ $s->jumlah_barang }}</span>
+            </a>
+        @endforeach
+        @if ($jumlahTanpa)
+            <a href="{{ $urlGrup('tanpa') }}" class="btn btn-sm btn-light chip-supplier {{ $pilih === 'tanpa' ? 'aktif' : '' }}" style="--sw: #94a3b8">
+                <i></i>Tanpa supplier <span class="badge rounded-pill ms-1">{{ $jumlahTanpa }}</span>
+            </a>
+        @endif
+    </div>
 
     <div class="card">
         @if ($barangs->isEmpty())
-            <x-empty-state icon="bi-basket2" :title="request('q') ? 'Barang tidak ditemukan' : 'Belum ada barang'"
-                           :message="request('q') ? 'Coba kata kunci lain.' : 'Tambahkan sayur yang Anda jual beserta harga default-nya.'">
-                @unless (request('q'))
-                    <a href="{{ route('barang.create') }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Tambah Barang</a>
-                @endunless
+            <x-empty-state icon="bi-basket2" :title="request('q') || $pilih ? 'Barang tidak ditemukan' : 'Belum ada barang'"
+                           :message="request('q') || $pilih ? 'Coba kata kunci atau supplier lain.' : 'Tambahkan sayur yang Anda jual beserta supplier dan harga default-nya.'">
+                <a href="{{ $tambahUrl }}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i> Tambah Barang</a>
             </x-empty-state>
         @else
             <div class="table-responsive">
@@ -34,7 +56,17 @@
                     </tr>
                     </thead>
                     <tbody>
+                    @php $grupSebelumnya = false; @endphp
                     @foreach ($barangs as $barang)
+                        {{-- Judul kelompok setiap ganti supplier --}}
+                        @if (($barang->supplier?->id) !== $grupSebelumnya)
+                            @php $grupSebelumnya = $barang->supplier?->id; @endphp
+                            <tr class="baris-grup">
+                                <td colspan="8" data-label="">
+                                    <x-supplier :nama="$barang->supplier?->nama ?? 'Tanpa supplier'" :warna="$barang->supplier?->warna" class="fw-semibold" />
+                                </td>
+                            </tr>
+                        @endif
                         <tr>
                             <td class="text-secondary">{{ $barangs->firstItem() + $loop->index }}</td>
                             <td class="fw-semibold">{{ $barang->nama }}</td>

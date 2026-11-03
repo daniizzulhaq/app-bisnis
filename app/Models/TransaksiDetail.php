@@ -27,16 +27,16 @@ class TransaksiDetail extends Model
 
     public function transaksi(): BelongsTo
     {
-        return $this->belongsTo(Transaksi::class);
+        return $this->belongsTo(Transaksi::class)->withTrashed();
     }
 
     public function barang(): BelongsTo
     {
-        return $this->belongsTo(Barang::class);
+        return $this->belongsTo(Barang::class)->withTrashed();
     }
 
     public function supplier(): BelongsTo
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Supplier::class)->withTrashed();
     }
 }

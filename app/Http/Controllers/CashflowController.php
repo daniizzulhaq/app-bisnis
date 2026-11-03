@@ -107,7 +107,7 @@ class CashflowController extends Controller
 
         $cashflow->delete();
 
-        return back()->with('success', 'Cashflow berhasil dihapus.');
+        return back()->with('success', 'Cashflow berhasil dihapus. Bisa dipulihkan dari menu Riwayat Hapus.');
     }
 
     private function tolakOtomatis(): RedirectResponse

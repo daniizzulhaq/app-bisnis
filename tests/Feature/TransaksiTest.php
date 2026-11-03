@@ -62,7 +62,6 @@ class TransaksiTest extends TestCase
         $nota = Transaksi::firstOrFail();
         $res->assertRedirect("/rekapan/{$nota->id}");
 
-        $this->assertSame('NT-2611-0001', $nota->no_nota);
         $this->assertEquals(32.5, $nota->total_qty);
         $this->assertEquals(12.5 * 9000 + 20 * 2500, $nota->total_beli);   // 162.500
         $this->assertEquals(12.5 * 12000 + 20 * 4000, $nota->total_jual);  // 230.000
@@ -71,13 +70,29 @@ class TransaksiTest extends TestCase
         $this->assertCount(2, $nota->details);
     }
 
-    public function test_nomor_nota_berurutan_per_bulan(): void
+    public function test_nota_tanpa_nomor_dan_baris_tambahan_kosong_diabaikan(): void
     {
-        $this->post('/rekapan', $this->payload());
-        $this->post('/rekapan', $this->payload());
-        $this->post('/rekapan', $this->payload(['tanggal' => '2026-12-01']));
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('transaksis', 'no_nota'));
 
-        $this->assertEquals(['NT-2611-0001', 'NT-2611-0002', 'NT-2612-0001'], Transaksi::orderBy('id')->pluck('no_nota')->all());
+        // Baris yang hanya berisi supplier/harga (barang & qty kosong) dianggap kosong
+        $data = $this->payload();
+        $data['items'][] = ['barang_id' => '', 'supplier_id' => $this->s1->id, 'qty' => '', 'harga_beli' => '9.000', 'harga_jual' => ''];
+        $this->post('/rekapan', $data)->assertSessionHasNoErrors()
+            ->assertSessionHas('success', 'Nota Hotel Grand Asri · 03 Nov 2026 berhasil disimpan.');
+
+        $this->assertCount(2, Transaksi::firstOrFail()->details);
+    }
+
+    public function test_form_nota_barang_dikelompokkan_per_supplier(): void
+    {
+        $this->wortel->update(['supplier_id' => $this->s1->id]);
+
+        $this->get('/rekapan/create')->assertOk()
+            ->assertDontSee('No. Nota')
+            ->assertSee('id="jumlah-baris"', false)
+            ->assertSee('<optgroup label="Pak Darto"', false)
+            ->assertSee('<optgroup label="Tanpa supplier"', false)
+            ->assertSee('"supplier":'.$this->s1->id, false);
     }
 
     public function test_validasi_item(): void
@@ -95,17 +110,21 @@ class TransaksiTest extends TestCase
         $this->post('/rekapan', $this->payload());
         $nota = Transaksi::first();
 
-        $this->get('/rekapan')->assertOk()->assertSee($nota->no_nota)->assertSee('Rp 230.000');
-        $this->get("/rekapan?supplier_id={$this->s2->id}")->assertSee($nota->no_nota);
-        $this->get('/rekapan?dari=2026-12-01')->assertDontSee($nota->no_nota)->assertSee('Tidak ada nota yang cocok');
+        $this->get('/rekapan')->assertOk()->assertSee('03 Nov 2026')->assertSee('Rp 230.000')->assertDontSee('No. Nota');
+        $this->get("/rekapan?supplier_id={$this->s2->id}")->assertSee('Rp 230.000');
+        $this->get('/rekapan?dari=2026-12-01')->assertDontSee('Rp 230.000')->assertSee('Tidak ada nota yang cocok');
         $this->get("/rekapan/{$nota->id}")->assertOk()->assertSee('Pak Darto')->assertSee('Bu Sari');
         $this->get("/rekapan/{$nota->id}/edit")->assertOk()->assertSee('12.5', false);
 
         // Nota untuk klien tidak boleh menampilkan harga beli
         $this->get("/rekapan/{$nota->id}/cetak")->assertOk()->assertSee('Rp 230.000')->assertDontSee('Rp 9.000');
+        // PDF: default dibuka di browser (inline), ?unduh=1 untuk disimpan
         $pdf = $this->get("/rekapan/{$nota->id}/cetak?pdf=1");
         $pdf->assertOk();
         $this->assertStringContainsString('application/pdf', $pdf->headers->get('content-type'));
+        $this->assertStringStartsWith('inline', $pdf->headers->get('content-disposition'));
+        $unduh = $this->get("/rekapan/{$nota->id}/cetak?pdf=1&unduh=1");
+        $this->assertStringStartsWith('attachment', $unduh->headers->get('content-disposition'));
     }
 
     public function test_edit_nota_mengganti_detail_dan_status_bayar(): void
@@ -122,7 +141,6 @@ class TransaksiTest extends TestCase
         ]]))->assertRedirect("/rekapan/{$nota->id}");
 
         $nota->refresh();
-        $this->assertSame('NT-2611-0001', $nota->no_nota);
         $this->assertCount(1, $nota->details);
         $this->assertEquals(96000, $nota->total_jual);
         $this->assertSame('lunas', $nota->status_bayar);
@@ -145,6 +163,11 @@ class TransaksiTest extends TestCase
         $nota = Transaksi::first();
 
         $this->delete("/rekapan/{$nota->id}")->assertRedirect('/rekapan');
+        $this->assertSoftDeleted($nota);
+        $this->get('/rekapan')->assertDontSee('Rp 230.000');
+
+        // Hapus permanen dari Riwayat Hapus -> detail ikut terhapus
+        $this->delete("/riwayat-hapus/nota/{$nota->id}")->assertSessionHas('success');
         $this->assertDatabaseCount('transaksis', 0);
         $this->assertDatabaseCount('transaksi_details', 0);
     }

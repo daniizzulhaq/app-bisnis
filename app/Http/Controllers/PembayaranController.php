@@ -39,7 +39,7 @@ class PembayaranController extends Controller
             ->first();
 
         $pembayarans = $query
-            ->with(['klien:id,nama', 'supplier:id,nama', 'transaksi:id,no_nota'])
+            ->with(['klien:id,nama', 'supplier:id,nama', 'transaksi:id,tanggal'])
             ->orderByDesc('tanggal')
             ->orderByDesc('id')
             ->paginate(15)
@@ -94,7 +94,7 @@ class PembayaranController extends Controller
     {
         DB::transaction(fn () => $pembayaran->delete());
 
-        return back()->with('success', 'Pembayaran dihapus, cashflow & status nota telah disesuaikan.');
+        return back()->with('success', 'Pembayaran dihapus, cashflow & status nota telah disesuaikan. Bisa dipulihkan dari menu Riwayat Hapus.');
     }
 
     /**
@@ -111,14 +111,16 @@ class PembayaranController extends Controller
             $rows = TransaksiDetail::query()
                 ->join('transaksis', 'transaksis.id', '=', 'transaksi_details.transaksi_id')
                 ->where('transaksi_details.supplier_id', $id)
-                ->groupBy('transaksis.id', 'transaksis.no_nota', 'transaksis.tanggal')
+                ->whereNull('transaksis.deleted_at')
+                ->join('kliens', 'kliens.id', '=', 'transaksis.klien_id')
+                ->groupBy('transaksis.id', 'transaksis.tanggal', 'kliens.nama')
                 ->orderByDesc('transaksis.tanggal')
                 ->limit(100)
-                ->get(['transaksis.id', 'transaksis.no_nota', 'transaksis.tanggal', DB::raw('SUM(subtotal_beli) AS total')]);
+                ->get(['transaksis.id', 'transaksis.tanggal', 'kliens.nama AS klien', DB::raw('SUM(subtotal_beli) AS total')]);
 
             return response()->json($rows->map(fn ($r) => [
                 'value' => $r->id,
-                'text' => "{$r->no_nota} · ".tanggal($r->tanggal).' · beli '.rupiah($r->total),
+                'text' => tanggal($r->tanggal)." · {$r->klien} · beli ".rupiah($r->total),
             ]));
         }
 
@@ -129,11 +131,11 @@ class PembayaranController extends Controller
             ->withSum('pembayaranKlien as dibayar', 'jumlah')
             ->orderByDesc('tanggal')
             ->limit(100)
-            ->get(['id', 'no_nota', 'tanggal', 'total_jual']);
+            ->get(['id', 'tanggal', 'total_jual']);
 
         return response()->json($rows->map(fn ($t) => [
             'value' => $t->id,
-            'text' => "{$t->no_nota} · ".tanggal($t->tanggal).' · sisa '.rupiah(max(0, $t->total_jual - $t->dibayar)),
+            'text' => 'Nota '.tanggal($t->tanggal).' · total '.rupiah($t->total_jual).' · sisa '.rupiah(max(0, $t->total_jual - $t->dibayar)),
             'sisa' => max(0, (float) $t->total_jual - (float) $t->dibayar),
         ]));
     }

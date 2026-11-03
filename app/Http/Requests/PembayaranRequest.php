@@ -36,9 +36,9 @@ class PembayaranRequest extends FormRequest
         return [
             'tanggal' => ['required', 'date'],
             'jenis' => ['required', Rule::in(array_keys(Pembayaran::JENIS))],
-            'klien_id' => ['nullable', 'required_if:jenis,klien', 'integer', 'exists:kliens,id'],
-            'supplier_id' => ['nullable', 'required_if:jenis,supplier', 'integer', 'exists:suppliers,id'],
-            'transaksi_id' => ['nullable', 'integer', 'exists:transaksis,id'],
+            'klien_id' => ['nullable', 'required_if:jenis,klien', 'integer', 'exists:kliens,id,deleted_at,NULL'],
+            'supplier_id' => ['nullable', 'required_if:jenis,supplier', 'integer', 'exists:suppliers,id,deleted_at,NULL'],
+            'transaksi_id' => ['nullable', 'integer', 'exists:transaksis,id,deleted_at,NULL'],
             'jumlah' => ['required', 'numeric', 'gt:0', 'max:9999999999'],
             'metode' => ['required', Rule::in(array_keys(Pembayaran::METODE))],
             'keterangan' => ['nullable', 'string', 'max:1000'],

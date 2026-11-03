@@ -22,6 +22,7 @@ return new class extends Migration
             $table->enum('metode', ['tunai', 'transfer'])->default('tunai');
             $table->text('keterangan')->nullable();
             $table->timestamps();
+            $table->softDeletes(); // riwayat hapus (bisa dipulihkan)
         });
 
         Schema::create('cashflows', function (Blueprint $table) {
@@ -34,6 +35,7 @@ return new class extends Migration
             $table->foreignId('pembayaran_id')->nullable()->unique()->constrained('pembayarans')->cascadeOnDelete();
             $table->text('keterangan')->nullable();
             $table->timestamps();
+            $table->softDeletes(); // riwayat hapus (bisa dipulihkan)
         });
     }
 

@@ -16,9 +16,11 @@ class TransaksiRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        // Buang baris yang benar-benar kosong, lalu normalisasi angka
+        // Buang baris kosong (barang & qty belum diisi, walau supplier/harga sudah terisi otomatis),
+        // lalu normalisasi angka
+        $isi = fn ($v) => $v !== null && $v !== '';
         $items = collect($this->input('items', []))
-            ->filter(fn ($i) => is_array($i) && array_filter($i, fn ($v) => $v !== null && $v !== ''))
+            ->filter(fn ($i) => is_array($i) && ($isi($i['barang_id'] ?? null) || $isi($i['qty'] ?? null)))
             ->map(fn ($i) => [
                 'barang_id' => $i['barang_id'] ?? null,
                 'supplier_id' => $i['supplier_id'] ?? null,
@@ -36,11 +38,11 @@ class TransaksiRequest extends FormRequest
     {
         return [
             'tanggal' => ['required', 'date'],
-            'klien_id' => ['required', 'integer', 'exists:kliens,id'],
+            'klien_id' => ['required', 'integer', 'exists:kliens,id,deleted_at,NULL'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
             'items' => ['required', 'array', 'min:1', 'max:200'],
-            'items.*.barang_id' => ['required', 'integer', 'exists:barangs,id'],
-            'items.*.supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
+            'items.*.barang_id' => ['required', 'integer', 'exists:barangs,id,deleted_at,NULL'],
+            'items.*.supplier_id' => ['required', 'integer', 'exists:suppliers,id,deleted_at,NULL'],
             'items.*.qty' => ['required', 'numeric', 'gt:0', 'max:9999999'],
             'items.*.harga_beli' => ['required', 'numeric', 'min:0', 'max:9999999999'],
             'items.*.harga_jual' => ['required', 'numeric', 'min:0', 'max:9999999999'],

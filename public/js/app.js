@@ -40,17 +40,33 @@ document.addEventListener('input', (e) => {
     if (e.target.classList?.contains('input-uang')) RB.formatInputUang(e.target);
 });
 
+/** Escape teks sebelum dimasukkan ke HTML. */
+RB.esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/** Titik warna supplier (dari atribut data-warna pada <option>/<optgroup>). */
+RB.titikWarna = (warna) => (warna ? `<span class="titik-warna" style="--sw:${RB.esc(warna)}"></span>` : '');
+
 /** Aktifkan Tom Select pada <select class="tom-select"> di dalam elemen root. */
 RB.initTomSelect = (root = document) => {
     root.querySelectorAll('select.tom-select:not(.tomselected)').forEach((el) => {
+        const multi = el.multiple;
+        const isi = (data, esc) => RB.titikWarna(data.warna) + esc(data.text);
         new TomSelect(el, {
             // Dropdown dirender di <body> agar tidak terpotong oleh .table-responsive / card
             dropdownParent: 'body',
             create: false,
-            allowEmptyOption: true,
+            allowEmptyOption: !multi,
             maxOptions: 500,
             placeholder: el.dataset.placeholder || 'Pilih...',
+            // Multi pilih: tombol x di tiap pilihan & dropdown tetap terbuka
+            plugins: multi ? ['remove_button'] : [],
+            closeAfterSelect: !multi,
+            // Multi: placeholder "Semua ..." hilang bila sudah ada pilihan (single: perilaku bawaan)
+            ...(multi ? { hidePlaceholder: true } : {}),
             render: {
+                option: (data, esc) => `<div>${isi(data, esc)}</div>`,
+                item: (data, esc) => `<div>${isi(data, esc)}</div>`,
+                optgroup_header: (data, esc) => `<div class="optgroup-header">${RB.titikWarna(data.warna)}${esc(data.label)}</div>`,
                 no_results: () => '<div class="no-results">Data tidak ditemukan</div>',
             },
         });
@@ -87,7 +103,10 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         Swal.fire({
             title: 'Hapus data?',
-            html: `Data <b>${form.dataset.nama || 'ini'}</b> akan dihapus permanen.`,
+            // data-permanen = hapus dari Riwayat Hapus (tidak bisa kembali)
+            html: form.dataset.permanen
+                ? `Data <b>${RB.esc(form.dataset.nama || 'ini')}</b> akan dihapus <b>permanen</b> dan tidak bisa dipulihkan lagi.`
+                : `Data <b>${RB.esc(form.dataset.nama || 'ini')}</b> akan dipindahkan ke <b>Riwayat Hapus</b> dan masih bisa dipulihkan.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Ya, hapus',

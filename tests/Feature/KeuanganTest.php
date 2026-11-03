@@ -56,7 +56,7 @@ class KeuanganTest extends TestCase
         $this->assertSame('masuk', $cf->tipe);
         $this->assertEquals(200000, $cf->nominal);
         $this->assertSame(Cashflow::KATEGORI_KLIEN, $cf->kategori);
-        $this->assertStringContainsString($this->nota->no_nota, $cf->keterangan);
+        $this->assertStringContainsString('Nota '.tanggal($this->nota->tanggal), $cf->keterangan);
 
         $this->bayarKlien('300.000');
         $this->assertSame('lunas', $this->nota->fresh()->status_bayar);
@@ -162,6 +162,6 @@ class KeuanganTest extends TestCase
         $this->assertEquals(4500000, $cf->fresh()->nominal);
 
         $this->delete("/cashflow/{$cf->id}");
-        $this->assertDatabaseCount('cashflows', 0);
+        $this->assertSoftDeleted($cf);
     }
 }

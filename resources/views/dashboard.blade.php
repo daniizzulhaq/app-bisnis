@@ -83,7 +83,6 @@
                     <tr>
                         <th>Tanggal</th>
                         <th>Klien</th>
-                        <th>No. Nota</th>
                         <th class="num">Total Jual</th>
                         <th>Status</th>
                     </tr>
@@ -91,9 +90,8 @@
                     <tbody>
                     @foreach ($terakhir as $t)
                         <tr>
-                            <td class="text-nowrap">{{ tanggal($t->tanggal) }}</td>
+                            <td class="text-nowrap"><a href="{{ route('rekapan.show', $t) }}" class="text-decoration-none fw-semibold">{{ tanggal($t->tanggal) }}</a></td>
                             <td class="fw-semibold">{{ $t->klien->nama }}</td>
-                            <td><a href="{{ route('rekapan.show', $t) }}" class="text-decoration-none">{{ $t->no_nota }}</a></td>
                             <td class="num fw-semibold">{{ rupiah($t->total_jual) }}</td>
                             <td><x-status-bayar :status="$t->status_bayar" /></td>
                         </tr>

@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="utf-8">
-    <title>Nota {{ $transaksi->no_nota }}</title>
+    <title>Nota {{ $transaksi->klien->nama }} {{ tanggal($transaksi->tanggal) }}</title>
     {{-- CSS sederhana agar kompatibel dengan dompdf & cetak browser. Nota klien TIDAK menampilkan harga beli/supplier. --}}
     <style>
         * { box-sizing: border-box; }
@@ -31,7 +31,8 @@
 @if ($mode === 'html')
     <div class="toolbar">
         <button class="utama" onclick="window.print()">Cetak</button>
-        <a href="{{ route('rekapan.cetak', [$transaksi, 'pdf' => 1]) }}">Unduh PDF</a>
+        <a href="{{ route('rekapan.cetak', [$transaksi, 'pdf' => 1]) }}" target="_blank">Lihat PDF</a>
+        <a href="{{ route('rekapan.cetak', [$transaksi, 'pdf' => 1, 'unduh' => 1]) }}">Unduh PDF</a>
         <a href="{{ route('rekapan.show', $transaksi) }}">Kembali</a>
     </div>
 @endif
@@ -45,7 +46,6 @@
             </td>
             <td>
                 <div class="judul">NOTA</div>
-                <div class="r muted">{{ $transaksi->no_nota }}</div>
             </td>
         </tr>
     </table>

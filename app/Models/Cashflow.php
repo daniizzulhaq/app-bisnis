@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Cashflow extends Model
 {
+    use SoftDeletes; // hapus = pindah ke Riwayat Hapus
+
     protected $table = 'cashflows';
 
     public const KATEGORI_KLIEN = 'Pembayaran Klien';

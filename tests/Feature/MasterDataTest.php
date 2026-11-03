@@ -40,7 +40,57 @@ class MasterDataTest extends TestCase
         $this->assertDatabaseHas('suppliers', ['id' => $supplier->id, 'nama' => 'Pak Darto Baru']);
 
         $this->delete("/supplier/{$supplier->id}")->assertRedirect('/supplier');
-        $this->assertDatabaseMissing('suppliers', ['id' => $supplier->id]);
+        $this->assertSoftDeleted($supplier); // masuk Riwayat Hapus
+    }
+
+    public function test_supplier_punya_warna(): void
+    {
+        // Tanpa warna -> otomatis warna preset pertama yang belum dipakai
+        $this->post('/supplier', ['nama' => 'Pak A'])->assertRedirect('/supplier');
+        $this->post('/supplier', ['nama' => 'Pak B'])->assertRedirect('/supplier');
+        $this->assertSame([Supplier::WARNA[0], Supplier::WARNA[1]], Supplier::orderBy('id')->pluck('warna')->all());
+
+        $this->post('/supplier', ['nama' => 'Pak C', 'warna' => '#ABCDEF'])->assertRedirect('/supplier');
+        $this->assertDatabaseHas('suppliers', ['nama' => 'Pak C', 'warna' => '#abcdef']);
+        $this->post('/supplier', ['nama' => 'Pak D', 'warna' => 'merah'])->assertSessionHasErrors('warna');
+
+        // Edit tanpa mengirim warna -> warna lama dipertahankan
+        $c = Supplier::firstWhere('nama', 'Pak C');
+        $this->put("/supplier/{$c->id}", ['nama' => 'Pak C2'])->assertRedirect('/supplier');
+        $this->assertSame('#abcdef', $c->fresh()->warna);
+
+        $this->get('/supplier')->assertSee('--sw: #abcdef', false);
+        $this->get('/supplier/create')->assertOk()->assertSee('value="'.Supplier::WARNA[2].'"', false);
+    }
+
+    public function test_barang_dengan_supplier_dan_klasifikasi(): void
+    {
+        $darto = Supplier::create(['nama' => 'Pak Darto', 'warna' => '#16a34a']);
+        $sari = Supplier::create(['nama' => 'Bu Sari']);
+
+        $this->get('/barang/create?supplier='.$darto->id)->assertOk()
+            ->assertSee('<option value="'.$darto->id.'" data-warna="#16a34a"', false);
+
+        $this->post('/barang', ['supplier_id' => $darto->id, 'nama' => 'Wortel', 'satuan' => 'kg',
+            'harga_beli_default' => '9.000', 'harga_jual_default' => '12.000'])->assertRedirect('/barang');
+        $this->post('/barang', ['supplier_id' => $sari->id, 'nama' => 'Bayam', 'satuan' => 'ikat',
+            'harga_beli_default' => '2.000', 'harga_jual_default' => '3.000'])->assertRedirect('/barang');
+        $this->post('/barang', ['nama' => 'Kol', 'satuan' => 'kg',
+            'harga_beli_default' => '5.000', 'harga_jual_default' => '7.000'])->assertRedirect('/barang');
+        $this->post('/barang', ['supplier_id' => 999, 'nama' => 'X', 'satuan' => 'kg',
+            'harga_beli_default' => 1, 'harga_jual_default' => 1])->assertSessionHasErrors('supplier_id');
+
+        $this->assertDatabaseHas('barangs', ['nama' => 'Wortel', 'supplier_id' => $darto->id]);
+
+        // Klasifikasi: semua (dikelompokkan), per supplier, tanpa supplier
+        $this->get('/barang')->assertOk()->assertSeeInOrder(['Bu Sari', 'Bayam', 'Pak Darto', 'Wortel', 'Tanpa supplier', 'Kol']);
+        $this->get('/barang?supplier='.$darto->id)->assertSee('Wortel')->assertDontSee('Bayam');
+        $this->get('/barang?supplier=tanpa')->assertSee('Kol')->assertDontSee('Wortel');
+
+        // Supplier dihapus -> barang tetap ada, tampil sebagai tanpa supplier
+        $this->delete("/supplier/{$sari->id}")->assertRedirect('/supplier');
+        $this->assertDatabaseHas('barangs', ['nama' => 'Bayam', 'deleted_at' => null]);
+        $this->get('/barang?supplier=tanpa')->assertSee('Bayam')->assertSee('Kol');
     }
 
     public function test_validasi_bahasa_indonesia(): void

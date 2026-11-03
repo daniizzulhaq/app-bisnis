@@ -53,8 +53,12 @@ class LaporanDashboardUserTest extends TestCase
         $this->assertEquals(450000 - 100000, $row->sisa);    // kumulatif s/d 30 Nov
         $res->assertSee('Hotel Puri Wangi');
 
-        $this->get("/laporan/klien?dari=2026-11-01&sampai=2026-11-30&klien_id={$this->klien->id}")
-            ->assertOk()->assertSee('NT-2611-0001')->assertDontSee('NT-2610-0001');
+        // Rincian barang per klien terpilih, hanya periode ini
+        $rincian = $this->get("/laporan/klien?dari=2026-11-01&sampai=2026-11-30&klien_id={$this->klien->id}")
+            ->assertOk()->assertSee('Rincian Barang')->assertSee('02 Nov 2026')->assertDontSee('20 Okt 2026')
+            ->viewData('rincian');
+        $this->assertCount(1, $rincian);
+        $this->assertCount(1, $rincian->first()->items);
     }
 
     public function test_laporan_per_supplier(): void
@@ -66,7 +70,7 @@ class LaporanDashboardUserTest extends TestCase
         $this->assertEquals(130000, $row->sisa);
 
         $this->get("/laporan/supplier?dari=2026-10-01&sampai=2026-11-30&supplier_id={$this->supplier->id}")
-            ->assertOk()->assertSee('Item yang Dibeli');
+            ->assertOk()->assertSee('Barang dari');
     }
 
     public function test_laporan_per_barang(): void
@@ -78,11 +82,52 @@ class LaporanDashboardUserTest extends TestCase
         $this->assertEquals(120000, $row->laba);
     }
 
+    public function test_laporan_multi_klien_supplier_mode_harga_dan_format_qty(): void
+    {
+        $klien2 = Klien::create(['nama' => 'Resto Melati']);
+        $supplier2 = Supplier::create(['nama' => 'Pak Ujang', 'warna' => '#16a34a']);
+        $tomat = Barang::create(['nama' => 'Tomat', 'satuan' => 'kg', 'supplier_id' => $supplier2->id, 'harga_beli_default' => 8000, 'harga_jual_default' => 11000]);
+        app(TransaksiService::class)->simpan(['tanggal' => '2026-11-05', 'klien_id' => $klien2->id, 'items' => [
+            ['barang_id' => $tomat->id, 'supplier_id' => $supplier2->id, 'qty' => 2.5, 'harga_beli' => 8000, 'harga_jual' => 11000],
+        ]]);
+        $periode = 'dari=2026-11-01&sampai=2026-11-30';
+
+        // Pilih dua klien sekaligus -> dua ringkasan + dua rincian
+        $res = $this->get("/laporan/klien?{$periode}&klien_id[]={$this->klien->id}&klien_id[]={$klien2->id}")->assertOk();
+        $this->assertCount(2, $res->viewData('rows'));
+        $this->assertCount(2, $res->viewData('rincian'));
+
+        // Filter supplier: hanya item dari Pak Ujang yang dihitung
+        $rows = $this->get("/laporan/klien?{$periode}&supplier_id[]={$supplier2->id}")->viewData('rows');
+        $this->assertSame(['Resto Melati'], $rows->pluck('nama')->all());
+        $this->assertEquals(27500, $rows->first()->total_jual);
+
+        // Mode harga jual saja: harga beli tidak tampil
+        $this->get("/laporan/klien?{$periode}&klien_id[]={$klien2->id}&harga=jual")
+            ->assertSee('Rp 27.500')->assertDontSee('Rp 20.000')->assertDontSee('Harga Beli');
+        $this->get("/laporan/klien?{$periode}&klien_id[]={$klien2->id}&harga=lengkap")
+            ->assertSee('Rp 20.000')->assertSee('Laba');
+
+        // Format qty
+        $this->get("/laporan/barang?{$periode}&barang_id[]={$tomat->id}&qty=satuan")->assertSee('>2,5 kg<', false);
+        $this->get("/laporan/barang?{$periode}&barang_id[]={$tomat->id}&qty=desimal")->assertSee('>2,50 kg<', false);
+        $this->get("/laporan/barang?{$periode}&barang_id[]={$tomat->id}&qty=angka")->assertSee('>2,5<', false)->assertDontSee('>2,5 kg<', false);
+
+        // Laporan supplier multi pilih + warna supplier
+        $res = $this->get("/laporan/supplier?{$periode}&supplier_id[]={$this->supplier->id}&supplier_id[]={$supplier2->id}");
+        $this->assertCount(2, $res->viewData('rincian'));
+        $res->assertSee('--sw: #16a34a', false);
+    }
+
     public function test_export_pdf_dan_excel(): void
     {
         foreach (['klien', 'supplier', 'barang'] as $jenis) {
+            // PDF tidak otomatis tersimpan: default dibuka (inline), unduh=1 untuk menyimpan
             $pdf = $this->get("/laporan/{$jenis}?dari=2026-10-01&sampai=2026-11-30&export=pdf")->assertOk();
             $this->assertStringContainsString('application/pdf', $pdf->headers->get('content-type'));
+            $this->assertStringStartsWith('inline', $pdf->headers->get('content-disposition'));
+            $unduh = $this->get("/laporan/{$jenis}?dari=2026-10-01&sampai=2026-11-30&export=pdf&unduh=1")->assertOk();
+            $this->assertStringStartsWith('attachment', $unduh->headers->get('content-disposition'));
 
             $xls = $this->get("/laporan/{$jenis}?dari=2026-10-01&sampai=2026-11-30&export=excel")->assertOk();
             $this->assertStringContainsString('.xlsx', $xls->headers->get('content-disposition'));
@@ -90,7 +135,8 @@ class LaporanDashboardUserTest extends TestCase
 
         // Export dengan rincian (1 klien / 1 supplier dipilih)
         $this->get("/laporan/klien?klien_id={$this->klien->id}&export=excel")->assertOk();
-        $this->get("/laporan/supplier?supplier_id={$this->supplier->id}&export=pdf")->assertOk();
+        $this->get("/laporan/supplier?supplier_id[]={$this->supplier->id}&harga=lengkap&qty=angka&export=pdf")->assertOk();
+        $this->get("/laporan/barang?supplier_id[]={$this->supplier->id}&export=excel")->assertOk();
     }
 
     public function test_laporan_kosong_menampilkan_empty_state(): void

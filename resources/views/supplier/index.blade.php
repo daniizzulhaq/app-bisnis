@@ -27,6 +27,7 @@
                         <th>Nama</th>
                         <th>No. HP</th>
                         <th>Alamat</th>
+                        <th class="num">Barang</th>
                         <th class="num">Item Transaksi</th>
                         <th class="text-end" style="width:110px">Aksi</th>
                     </tr>
@@ -36,13 +37,16 @@
                         <tr>
                             <td class="text-secondary">{{ $suppliers->firstItem() + $loop->index }}</td>
                             <td>
-                                <div class="fw-semibold">{{ $supplier->nama }}</div>
+                                <x-supplier :nama="$supplier->nama" :warna="$supplier->warna" class="fw-semibold" />
                                 @if ($supplier->keterangan)
                                     <div class="small text-secondary text-truncate" style="max-width:260px">{{ $supplier->keterangan }}</div>
                                 @endif
                             </td>
                             <td>{{ $supplier->no_hp ?: '-' }}</td>
                             <td class="text-secondary small td-wrap">{{ \Illuminate\Support\Str::limit($supplier->alamat, 60) ?: '-' }}</td>
+                            <td class="num">
+                                <a href="{{ route('barang.index', ['supplier' => $supplier->id]) }}" class="text-decoration-none" title="Lihat barang supplier ini">{{ angka($supplier->barangs_count) }}</a>
+                            </td>
                             <td class="num">{{ angka($supplier->transaksi_details_count) }}</td>
                             <td class="text-end">
                                 @include('partials.tombol-aksi', [

@@ -60,6 +60,6 @@ class KlienController extends Controller
             return back()->with('error', "Klien \"{$klien->nama}\" masih dipakai data lain dan tidak dapat dihapus.");
         }
 
-        return redirect()->route('klien.index')->with('success', "Klien \"{$klien->nama}\" berhasil dihapus.");
+        return redirect()->route('klien.index')->with('success', "Klien \"{$klien->nama}\" berhasil dihapus. Bisa dipulihkan dari menu Riwayat Hapus.");
     }
 }

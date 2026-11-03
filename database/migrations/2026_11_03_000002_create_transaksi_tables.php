@@ -14,7 +14,6 @@ return new class extends Migration
     {
         Schema::create('transaksis', function (Blueprint $table) {
             $table->id();
-            $table->string('no_nota', 30)->unique();
             $table->date('tanggal')->index();
             $table->foreignId('klien_id')->constrained('kliens')->restrictOnDelete();
             $table->decimal('total_qty', 12, 2)->default(0);
@@ -24,6 +23,7 @@ return new class extends Migration
             $table->enum('status_bayar', ['belum', 'sebagian', 'lunas'])->default('belum')->index();
             $table->text('keterangan')->nullable();
             $table->timestamps();
+            $table->softDeletes(); // riwayat hapus (bisa dipulihkan)
         });
 
         Schema::create('transaksi_details', function (Blueprint $table) {

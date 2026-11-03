@@ -23,6 +23,7 @@ class DashboardController extends Controller
         // Detail transaksi dalam periode, dipakai untuk Top Supplier & Top Barang
         $detail = fn () => DB::table('transaksi_details as d')
             ->join('transaksis as t', 't.id', '=', 'd.transaksi_id')
+            ->whereNull('t.deleted_at')
             ->whereBetween('t.tanggal', [$dari, $sampai]);
 
         $topSupplier = $detail()
@@ -41,6 +42,7 @@ class DashboardController extends Controller
 
         $topKlien = DB::table('transaksis as t')
             ->join('kliens as k', 'k.id', '=', 't.klien_id')
+            ->whereNull('t.deleted_at')
             ->whereBetween('t.tanggal', [$dari, $sampai])
             ->groupBy('k.id', 'k.nama')
             ->orderByDesc('total')

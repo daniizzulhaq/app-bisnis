@@ -26,8 +26,10 @@
     <div class="muted">Supplier Sayur untuk Hotel &amp; Resto</div>
 </div>
 
-<h2>{{ $judul }}{{ $subjek ? ' · '.$subjek : '' }}</h2>
-<div class="muted" style="margin-bottom:10px">Periode {{ $periode->label() }}</div>
+<h2>{{ $judul }}</h2>
+<div class="muted" style="margin-bottom:10px">
+    Periode {{ $periode->label() }}{{ $subjek ? ' · '.$subjek : '' }}
+</div>
 
 @if ($rows->isEmpty())
     <p>Tidak ada data pada periode ini.</p>

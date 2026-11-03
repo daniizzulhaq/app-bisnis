@@ -7,6 +7,7 @@ use App\Models\Barang;
 use App\Models\Klien;
 use App\Models\Supplier;
 use App\Services\LaporanService;
+use App\Support\OpsiLaporan;
 use App\Support\Periode;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -15,7 +16,9 @@ use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * Laporan per Klien / Supplier / Barang.
- * Tambahkan ?export=pdf atau ?export=excel untuk mengunduh.
+ * ?export=pdf  -> lihat PDF di browser (tidak tersimpan otomatis)
+ * ?export=pdf&unduh=1 -> simpan file PDF
+ * ?export=excel -> unduh Excel
  */
 class LaporanController extends Controller
 {
@@ -25,56 +28,57 @@ class LaporanController extends Controller
 
     public function klien(Request $request)
     {
-        $periode = Periode::dariRequest($request);
-        $data = $this->laporan->perKlien($periode, $request->integer('klien_id') ?: null);
-
-        return $this->tampilkan($request, 'klien', 'Laporan Per Klien', $periode, $data, [
-            'pilihan' => Klien::orderBy('nama')->get(['id', 'nama']),
-            'pilihanNama' => 'klien_id',
-            'pilihanLabel' => 'Klien',
-            'subjek' => $data['klien']?->nama,
-        ]);
+        return $this->laporan($request, 'klien', 'Laporan Per Klien', 'jual',
+            fn ($p, $o) => $this->laporan->perKlien($p, $o));
     }
 
     public function supplier(Request $request)
     {
-        $periode = Periode::dariRequest($request);
-        $data = $this->laporan->perSupplier($periode, $request->integer('supplier_id') ?: null);
-
-        return $this->tampilkan($request, 'supplier', 'Laporan Per Supplier', $periode, $data, [
-            'pilihan' => Supplier::orderBy('nama')->get(['id', 'nama']),
-            'pilihanNama' => 'supplier_id',
-            'pilihanLabel' => 'Supplier',
-            'subjek' => $data['supplier']?->nama,
-        ]);
+        return $this->laporan($request, 'supplier', 'Laporan Per Supplier', 'beli',
+            fn ($p, $o) => $this->laporan->perSupplier($p, $o));
     }
 
     public function barang(Request $request)
     {
-        $periode = Periode::dariRequest($request);
-        $barangId = $request->integer('barang_id') ?: null;
-        $data = $this->laporan->perBarang($periode, $barangId);
-
-        return $this->tampilkan($request, 'barang', 'Laporan Per Barang', $periode, $data, [
-            'pilihan' => Barang::orderBy('nama')->get(['id', 'nama']),
-            'pilihanNama' => 'barang_id',
-            'pilihanLabel' => 'Barang',
-            'subjek' => $barangId ? Barang::find($barangId)?->nama : null,
-        ]);
+        return $this->laporan($request, 'barang', 'Laporan Per Barang', 'lengkap',
+            fn ($p, $o) => $this->laporan->perBarang($p, $o));
     }
 
-    /** Render HTML, PDF, atau Excel dari data yang sama. */
-    private function tampilkan(Request $request, string $jenis, string $judul, Periode $periode, array $data, array $extra)
+    private function laporan(Request $request, string $jenis, string $judul, string $modeDefault, callable $ambil)
     {
-        $data = $data + $extra + compact('periode', 'judul', 'jenis');
-        $namaFile = Str::slug($judul.' '.$periode->dariStr().' '.$periode->sampaiStr().' '.($extra['subjek'] ?? ''));
+        $periode = Periode::dariRequest($request);
+        $opsi = OpsiLaporan::dariRequest($request, $modeDefault);
 
-        return match ($request->input('export')) {
-            'pdf' => Pdf::loadView('laporan.pdf', $data + ['mode' => 'pdf'])
-                ->setPaper('a4', $jenis === 'klien' ? 'portrait' : 'landscape')
-                ->download($namaFile.'.pdf'),
-            'excel' => Excel::download(new LaporanExport("laporan.{$jenis}._tabel", $data, $judul), $namaFile.'.xlsx'),
-            default => view('laporan.halaman', $data + ['mode' => 'html']),
-        };
+        $pilihan = [
+            'kliens' => Klien::orderBy('nama')->get(['id', 'nama']),
+            'suppliers' => Supplier::orderBy('nama')->get(['id', 'nama', 'warna']),
+            'barangs' => Barang::orderBy('nama')->get(['id', 'nama', 'satuan']),
+        ];
+
+        // Ringkasan filter untuk judul, mis. "Hotel Mawar, Resto Melati · Supplier: Pak Darto"
+        $subjek = collect([
+            'Klien' => $pilihan['kliens']->whereIn('id', $opsi->klienIds)->pluck('nama'),
+            'Supplier' => $pilihan['suppliers']->whereIn('id', $opsi->supplierIds)->pluck('nama'),
+            'Barang' => $pilihan['barangs']->whereIn('id', $opsi->barangIds)->pluck('nama'),
+        ])->filter(fn ($n) => $n->isNotEmpty())
+            ->map(fn ($n, $label) => "{$label}: ".$n->implode(', '))
+            ->implode(' · ') ?: null;
+
+        $data = $ambil($periode, $opsi) + $pilihan + compact('periode', 'judul', 'jenis', 'opsi', 'subjek');
+
+        $namaFile = Str::limit(Str::slug($judul.' '.$periode->dariStr().' '.$periode->sampaiStr().' '.($subjek ?? '')), 120, '');
+
+        if ($request->input('export') === 'pdf') {
+            $pdf = Pdf::loadView('laporan.pdf', $data + ['mode' => 'pdf'])
+                ->setPaper('a4', $opsi->laba() || $jenis !== 'klien' ? 'landscape' : 'portrait');
+
+            return $request->boolean('unduh') ? $pdf->download($namaFile.'.pdf') : $pdf->stream($namaFile.'.pdf');
+        }
+
+        if ($request->input('export') === 'excel') {
+            return Excel::download(new LaporanExport("laporan.{$jenis}._tabel", $data, $judul), $namaFile.'.xlsx');
+        }
+
+        return view('laporan.halaman', $data + ['mode' => 'html']);
     }
 }

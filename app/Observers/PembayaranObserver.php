@@ -31,16 +31,25 @@ class PembayaranObserver
         $this->refreshNota($pembayaran->transaksi_id);
     }
 
+    /** Dihapus (ke Riwayat Hapus): cashflow otomatisnya dibuang, status nota dihitung ulang. */
     public function deleted(Pembayaran $pembayaran): void
     {
-        $pembayaran->cashflow()->delete();
+        $pembayaran->cashflow()->withTrashed()->forceDelete();
+        $this->refreshNota($pembayaran->transaksi_id);
+    }
+
+    /** Dipulihkan dari Riwayat Hapus: cashflow dibuat lagi. */
+    public function restored(Pembayaran $pembayaran): void
+    {
+        $pembayaran->cashflow()->withTrashed()->forceDelete();
+        $pembayaran->cashflow()->create($this->dataCashflow($pembayaran));
         $this->refreshNota($pembayaran->transaksi_id);
     }
 
     private function dataCashflow(Pembayaran $p): array
     {
         $p->loadMissing(['klien', 'supplier', 'transaksi']);
-        $nota = $p->transaksi ? ' · Nota '.$p->transaksi->no_nota : '';
+        $nota = $p->transaksi ? ' · Nota '.tanggal($p->transaksi->tanggal) : '';
 
         return [
             'tanggal' => $p->tanggal,

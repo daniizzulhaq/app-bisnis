@@ -2,14 +2,16 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Transaksi extends Model
 {
+    use SoftDeletes; // hapus = pindah ke Riwayat Hapus
+
     protected $table = 'transaksis';
 
     public const STATUS = [
@@ -19,7 +21,7 @@ class Transaksi extends Model
     ];
 
     protected $fillable = [
-        'no_nota', 'tanggal', 'klien_id', 'total_qty', 'total_beli', 'total_jual',
+        'tanggal', 'klien_id', 'total_qty', 'total_beli', 'total_jual',
         'laba', 'status_bayar', 'keterangan',
     ];
 
@@ -36,7 +38,7 @@ class Transaksi extends Model
 
     public function klien(): BelongsTo
     {
-        return $this->belongsTo(Klien::class);
+        return $this->belongsTo(Klien::class)->withTrashed();
     }
 
     public function details(): HasMany
@@ -55,22 +57,10 @@ class Transaksi extends Model
         return $this->pembayarans()->where('jenis', 'klien');
     }
 
-    /**
-     * Nomor nota otomatis per bulan, contoh: NT-2611-0001.
-     * Wajib dipanggil di dalam DB::transaction() agar lockForUpdate efektif.
-     */
-    public static function generateNoNota(string|Carbon $tanggal): string
+    /** Nama nota untuk pesan & tampilan, mis. "Nota Hotel Mawar · 03 Nov 2026". */
+    public function getLabelAttribute(): string
     {
-        $prefix = 'NT-'.Carbon::parse($tanggal)->format('ym').'-';
-
-        $terakhir = static::where('no_nota', 'like', $prefix.'%')
-            ->lockForUpdate()
-            ->orderByDesc('no_nota')
-            ->value('no_nota');
-
-        $urut = $terakhir ? ((int) substr($terakhir, strlen($prefix))) + 1 : 1;
-
-        return $prefix.str_pad((string) $urut, 4, '0', STR_PAD_LEFT);
+        return 'Nota '.($this->klien?->nama ?? '').' · '.tanggal($this->tanggal);
     }
 
     /** Total yang sudah dibayar klien untuk nota ini. */
@@ -105,7 +95,7 @@ class Transaksi extends Model
     }
 
     /**
-     * Filter halaman rekapan: periode, klien, supplier, barang, status, no nota.
+     * Filter halaman rekapan: periode, klien, supplier, barang, status.
      */
     public function scopeFilter(Builder $query, array $f): Builder
     {
@@ -114,7 +104,6 @@ class Transaksi extends Model
             ->when($f['sampai'] ?? null, fn ($q, $v) => $q->whereDate('tanggal', '<=', $v))
             ->when($f['klien_id'] ?? null, fn ($q, $v) => $q->where('klien_id', $v))
             ->when($f['status'] ?? null, fn ($q, $v) => $q->where('status_bayar', $v))
-            ->when($f['q'] ?? null, fn ($q, $v) => $q->where('no_nota', 'like', "%{$v}%"))
             ->when($f['supplier_id'] ?? null, fn ($q, $v) => $q->whereHas('details', fn ($d) => $d->where('supplier_id', $v)))
             ->when($f['barang_id'] ?? null, fn ($q, $v) => $q->whereHas('details', fn ($d) => $d->where('barang_id', $v)));
     }

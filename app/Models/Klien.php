@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Klien extends Model
 {
+    use SoftDeletes; // hapus = pindah ke Riwayat Hapus
+
     protected $table = 'kliens';
 
     protected $fillable = ['nama', 'no_hp', 'alamat', 'keterangan'];

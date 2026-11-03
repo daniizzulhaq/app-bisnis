@@ -33,7 +33,6 @@ class TransaksiService
                 // Cara paling aman untuk edit multi-item: hapus detail lama, tulis ulang
                 $transaksi->details()->delete();
             } else {
-                $header['no_nota'] = Transaksi::generateNoNota($data['tanggal']);
                 $header['status_bayar'] = 'belum';
                 $transaksi = Transaksi::create($header);
             }

@@ -5,7 +5,7 @@
 
 @section('content')
     {{-- HP: filter dilipat agar daftar langsung terlihat --}}
-    @php $jumlahFilter = count(array_filter(request()->only(['dari','sampai','klien_id','supplier_id','barang_id','status','q']))); @endphp
+    @php $jumlahFilter = count(array_filter(request()->only(['dari','sampai','klien_id','supplier_id','barang_id','status']))); @endphp
     <div class="d-flex d-md-none gap-2 mb-3">
         <button class="btn btn-light flex-fill" type="button" data-bs-toggle="collapse" data-bs-target="#filterRekapan" aria-expanded="false" aria-controls="filterRekapan">
             <i class="bi bi-funnel me-1"></i> Filter
@@ -37,10 +37,10 @@
                 </div>
                 <div class="col-md-4 col-xl-2">
                     <label class="form-label" for="f-supplier">Supplier</label>
-                    <select id="f-supplier" name="supplier_id" class="form-select tom-select" data-placeholder="Semua supplier">
+                    <select id="f-supplier" name="supplier_id" class="form-select tom-select tom-warna" data-placeholder="Semua supplier">
                         <option value="">Semua supplier</option>
                         @foreach ($suppliers as $s)
-                            <option value="{{ $s->id }}" @selected(($filter['supplier_id'] ?? '') == $s->id)>{{ $s->nama }}</option>
+                            <option value="{{ $s->id }}" data-warna="{{ $s->warna }}" @selected(($filter['supplier_id'] ?? '') == $s->id)>{{ $s->nama }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -62,11 +62,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="q">No. Nota</label>
-                    <input type="search" id="q" name="q" value="{{ $filter['q'] ?? '' }}" class="form-control" placeholder="NT-2611-...">
-                </div>
-                <div class="col-md-8 d-flex gap-2 justify-content-md-end filter-actions">
+                <div class="col-12 d-flex gap-2 justify-content-md-end filter-actions">
                     <a href="{{ route('rekapan.index') }}" class="btn btn-light">Reset</a>
                     <button class="btn btn-light"><i class="bi bi-funnel me-1"></i> Terapkan Filter</button>
                     <a href="{{ route('rekapan.create') }}" class="btn btn-primary d-none d-md-inline-block"><i class="bi bi-plus-lg me-1"></i> Nota Baru</a>
@@ -109,7 +105,6 @@
                 <table class="table table-hover align-middle">
                     <thead>
                     <tr>
-                        <th>No. Nota</th>
                         <th>Tanggal</th>
                         <th>Klien</th>
                         <th class="num col-opsional">Item</th>
@@ -124,9 +119,8 @@
                     <tbody>
                     @foreach ($transaksis as $t)
                         <tr>
-                            <td><a href="{{ route('rekapan.show', $t) }}" class="fw-semibold text-decoration-none">{{ $t->no_nota }}</a></td>
-                            <td class="text-nowrap">{{ tanggal($t->tanggal) }}</td>
-                            <td>{{ $t->klien->nama }}</td>
+                            <td class="text-nowrap"><a href="{{ route('rekapan.show', $t) }}" class="fw-semibold text-decoration-none">{{ tanggal($t->tanggal) }}</a></td>
+                            <td class="fw-semibold">{{ $t->klien->nama }}</td>
                             <td class="num text-secondary hide-mobile col-opsional">{{ $t->details_count }}</td>
                             <td class="num hide-mobile col-opsional">{{ angka($t->total_qty) }}</td>
                             <td class="num text-secondary hide-mobile col-opsional-2">{{ rupiah($t->total_beli) }}</td>
@@ -138,7 +132,7 @@
                                     <a href="{{ route('rekapan.show', $t) }}" class="btn btn-sm btn-light" title="Detail"><i class="bi bi-eye"></i></a>
                                     <a href="{{ route('rekapan.edit', $t) }}" class="btn btn-sm btn-light" title="Edit"><i class="bi bi-pencil-square"></i></a>
                                     <a href="{{ route('rekapan.cetak', $t) }}" target="_blank" class="btn btn-sm btn-light" title="Cetak nota"><i class="bi bi-printer"></i></a>
-                                    <form method="POST" action="{{ route('rekapan.destroy', $t) }}" class="form-delete" data-nama="nota {{ $t->no_nota }}">
+                                    <form method="POST" action="{{ route('rekapan.destroy', $t) }}" class="form-delete" data-nama="nota {{ $t->klien->nama }} tanggal {{ tanggal($t->tanggal) }}">
                                         @csrf @method('DELETE')
                                         <button class="btn btn-sm btn-light text-danger" title="Hapus"><i class="bi bi-trash3"></i></button>
                                     </form>

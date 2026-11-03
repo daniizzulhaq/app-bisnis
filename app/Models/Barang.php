@@ -4,16 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Barang extends Model
 {
+    use SoftDeletes; // hapus = pindah ke Riwayat Hapus
+
     protected $table = 'barangs';
 
     /** Saran satuan untuk form (tetap boleh diketik bebas). */
     public const SATUAN = ['kg', 'ons', 'gram', 'ikat', 'pcs', 'pack', 'sisir', 'karung', 'peti', 'liter'];
 
-    protected $fillable = ['nama', 'satuan', 'harga_beli_default', 'harga_jual_default'];
+    protected $fillable = ['supplier_id', 'nama', 'satuan', 'harga_beli_default', 'harga_jual_default'];
 
     protected function casts(): array
     {
@@ -21,6 +25,12 @@ class Barang extends Model
             'harga_beli_default' => 'decimal:2',
             'harga_jual_default' => 'decimal:2',
         ];
+    }
+
+    /** Supplier langganan (klasifikasi barang). Boleh kosong. */
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
     }
 
     public function transaksiDetails(): HasMany

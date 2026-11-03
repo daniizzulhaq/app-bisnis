@@ -119,7 +119,7 @@
                             <td class="fw-semibold">{{ $p->nama_pihak }}</td>
                             <td>
                                 @if ($p->transaksi)
-                                    <a href="{{ route('rekapan.show', $p->transaksi_id) }}" class="text-decoration-none">{{ $p->transaksi->no_nota }}</a>
+                                    <a href="{{ route('rekapan.show', $p->transaksi_id) }}" class="text-decoration-none">Nota {{ tanggal($p->transaksi->tanggal) }}</a>
                                 @else
                                     <span class="text-secondary">-</span>
                                 @endif

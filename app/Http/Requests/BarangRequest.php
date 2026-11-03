@@ -26,6 +26,7 @@ class BarangRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'supplier_id' => ['nullable', 'integer', 'exists:suppliers,id,deleted_at,NULL'],
             'nama' => ['required', 'string', 'max:100'],
             'satuan' => ['required', 'string', 'max:20'],
             'harga_beli_default' => ['required', 'numeric', 'min:0', 'max:9999999999'],

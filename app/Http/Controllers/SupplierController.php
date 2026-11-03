@@ -15,7 +15,7 @@ class SupplierController extends Controller
     {
         $suppliers = Supplier::query()
             ->cari($request->q)
-            ->withCount('transaksiDetails')
+            ->withCount(['transaksiDetails', 'barangs'])
             ->orderBy('nama')
             ->paginate(15)
             ->withQueryString();
@@ -25,7 +25,7 @@ class SupplierController extends Controller
 
     public function create(): View
     {
-        return view('supplier.form', ['supplier' => new Supplier]);
+        return view('supplier.form', ['supplier' => new Supplier(['warna' => Supplier::warnaBerikut()])]);
     }
 
     public function store(SupplierRequest $request): RedirectResponse
@@ -60,6 +60,6 @@ class SupplierController extends Controller
             return back()->with('error', "Supplier \"{$supplier->nama}\" masih dipakai data lain dan tidak dapat dihapus.");
         }
 
-        return redirect()->route('supplier.index')->with('success', "Supplier \"{$supplier->nama}\" berhasil dihapus.");
+        return redirect()->route('supplier.index')->with('success', "Supplier \"{$supplier->nama}\" berhasil dihapus. Bisa dipulihkan dari menu Riwayat Hapus.");
     }
 }

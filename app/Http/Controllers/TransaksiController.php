@@ -12,6 +12,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -26,7 +27,7 @@ class TransaksiController extends Controller
 
     public function index(Request $request): View
     {
-        $filter = $request->only(['dari', 'sampai', 'klien_id', 'supplier_id', 'barang_id', 'status', 'q']);
+        $filter = $request->only(['dari', 'sampai', 'klien_id', 'supplier_id', 'barang_id', 'status']);
 
         $transaksis = Transaksi::query()
             ->filter($filter)
@@ -65,7 +66,7 @@ class TransaksiController extends Controller
         $transaksi = $this->service->simpan($request->validated());
 
         return redirect()->route('rekapan.show', $transaksi)
-            ->with('success', "Nota {$transaksi->no_nota} berhasil disimpan.");
+            ->with('success', "{$transaksi->load('klien')->label} berhasil disimpan.");
     }
 
     public function show(Transaksi $transaksi): View
@@ -73,7 +74,7 @@ class TransaksiController extends Controller
         $transaksi->load([
             'klien',
             'details.barang:id,nama,satuan',
-            'details.supplier:id,nama',
+            'details.supplier:id,nama,warna',
             'pembayarans' => fn ($q) => $q->with(['klien:id,nama', 'supplier:id,nama'])->orderBy('tanggal'),
         ]);
 
@@ -102,23 +103,25 @@ class TransaksiController extends Controller
         $this->service->simpan($request->validated(), $transaksi);
 
         return redirect()->route('rekapan.show', $transaksi)
-            ->with('success', "Nota {$transaksi->no_nota} berhasil diperbarui.");
+            ->with('success', "{$transaksi->load('klien')->label} berhasil diperbarui.");
     }
 
     public function destroy(Transaksi $transaksi): RedirectResponse
     {
         // Nota yang sudah punya pembayaran tidak boleh dihapus agar cashflow tetap konsisten
         if ($jumlah = $transaksi->pembayarans()->count()) {
-            return back()->with('error', "Nota {$transaksi->no_nota} tidak dapat dihapus karena sudah memiliki {$jumlah} pembayaran. Hapus pembayarannya terlebih dahulu.");
+            return back()->with('error', "{$transaksi->label} tidak dapat dihapus karena sudah memiliki {$jumlah} pembayaran. Hapus pembayarannya terlebih dahulu.");
         }
 
+        $label = $transaksi->label;
         DB::transaction(fn () => $transaksi->delete()); // detail ikut terhapus (cascade)
 
-        return redirect()->route('rekapan.index')->with('success', "Nota {$transaksi->no_nota} berhasil dihapus.");
+        return redirect()->route('rekapan.index')->with('success', "{$label} berhasil dihapus. Bisa dipulihkan dari menu Riwayat Hapus.");
     }
 
     /**
-     * Cetak nota untuk klien (hanya harga jual). ?pdf=1 untuk unduh PDF.
+     * Cetak nota untuk klien (hanya harga jual).
+     * ?pdf=1 = lihat PDF di browser, ?pdf=1&unduh=1 = simpan file PDF.
      */
     public function cetak(Request $request, Transaksi $transaksi): View|Response
     {
@@ -127,9 +130,10 @@ class TransaksiController extends Controller
         $data = compact('transaksi', 'dibayar') + ['mode' => $request->boolean('pdf') ? 'pdf' : 'html'];
 
         if ($request->boolean('pdf')) {
-            return Pdf::loadView('rekapan.cetak', $data)
-                ->setPaper('a5', 'portrait')
-                ->download("Nota-{$transaksi->no_nota}.pdf");
+            $pdf = Pdf::loadView('rekapan.cetak', $data)->setPaper('a5', 'portrait');
+            $file = 'Nota-'.Str::slug($transaksi->klien->nama).'-'.$transaksi->tanggal->format('Y-m-d').'.pdf';
+
+            return $request->boolean('unduh') ? $pdf->download($file) : $pdf->stream($file);
         }
 
         return view('rekapan.cetak', $data);
@@ -140,8 +144,9 @@ class TransaksiController extends Controller
     {
         return [
             'kliens' => Klien::orderBy('nama')->get(['id', 'nama']),
-            'suppliers' => Supplier::orderBy('nama')->get(['id', 'nama']),
-            'barangs' => Barang::orderBy('nama')->get(['id', 'nama', 'satuan', 'harga_beli_default', 'harga_jual_default']),
+            'suppliers' => Supplier::orderBy('nama')->get(['id', 'nama', 'warna']),
+            'barangs' => Barang::with('supplier:id,nama,warna')->orderBy('nama')
+                ->get(['id', 'supplier_id', 'nama', 'satuan', 'harga_beli_default', 'harga_jual_default']),
         ];
     }
 }

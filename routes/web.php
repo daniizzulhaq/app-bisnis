@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\KlienController;
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\PembayaranController;
+use App\Http\Controllers\RiwayatHapusController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\UserController;
@@ -25,6 +26,13 @@ Route::middleware('auth')->group(function () {
     // Rekapan (transaksi / nota)
     Route::get('rekapan/{transaksi}/cetak', [TransaksiController::class, 'cetak'])->name('rekapan.cetak');
     Route::resource('rekapan', TransaksiController::class)->parameters(['rekapan' => 'transaksi']);
+
+    // Riwayat hapus: pulihkan / hapus permanen
+    Route::get('riwayat-hapus', [RiwayatHapusController::class, 'index'])->name('riwayat-hapus.index');
+    Route::post('riwayat-hapus/{jenis}/{id}/pulihkan', [RiwayatHapusController::class, 'pulihkan'])
+        ->whereNumber('id')->name('riwayat-hapus.pulihkan');
+    Route::delete('riwayat-hapus/{jenis}/{id}', [RiwayatHapusController::class, 'hapusPermanen'])
+        ->whereNumber('id')->name('riwayat-hapus.hapus');
 
     // Keuangan
     Route::get('pembayaran/nota', [PembayaranController::class, 'notaOptions'])->name('pembayaran.nota');

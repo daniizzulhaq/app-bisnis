@@ -22,6 +22,7 @@
             ['label' => 'Cashflow', 'icon' => 'bi-wallet2', 'route' => 'cashflow.index', 'active' => 'cashflow.*'],
         ]],
         ['heading' => 'Pengaturan', 'items' => [
+            ['label' => 'Riwayat Hapus', 'icon' => 'bi-trash3', 'route' => 'riwayat-hapus.index', 'active' => 'riwayat-hapus.*'],
             ['label' => 'User', 'icon' => 'bi-person-gear', 'route' => 'user.edit', 'active' => 'user.*'],
         ]],
     ];

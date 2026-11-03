@@ -454,26 +454,41 @@ body {
 
 .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-/* Form item nota: kolom ringkas agar muat di layar laptop, pesan error boleh turun baris */
+/* Form item nota (model klien): Supplier | Barang | Qty | Harga Jual | Harga Beli | Satuan | Total Jual | Total Beli | X */
 #item-body td { white-space: normal; }
-.tabel-item > :is(thead, tbody, tfoot) > tr > :is(th, td) { padding-left: .5rem; padding-right: .5rem; }
-.tabel-item > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child { padding-left: 1.25rem; }
-.tabel-item .col-barang { min-width: 180px; width: 205px; max-width: 215px; }
-.tabel-item .col-supplier { min-width: 160px; width: 185px; max-width: 200px; }
-.tabel-item .col-qty { min-width: 85px; width: 95px; }
-.tabel-item .col-harga { min-width: 115px; width: 125px; }
+.tabel-item { table-layout: fixed; width: 100%; }
+.tabel-item > :is(thead, tbody) > tr > :is(th, td) { padding: .45rem .3rem; vertical-align: top; }
+.tabel-item > :is(thead, tbody) > tr > :is(th, td):nth-child(2) { padding-left: 1.1rem; }
+.tabel-item > :is(thead, tbody) > tr > :is(th, td):last-child { padding-right: .9rem; }
+.tabel-item > thead > tr > th { vertical-align: middle; white-space: normal; line-height: 1.2; }
+.tabel-item .col-no, .tabel-item td.row-no { display: none; }               /* nomor hanya dipakai di tampilan HP */
+/* Total lebar = 100% (table-layout: fixed) */
+.tabel-item .col-supplier { width: 14.5%; }
+.tabel-item .col-barang { width: 18.5%; }
+.tabel-item .col-qty { width: 7.5%; }
+.tabel-item .col-harga { width: 10.5%; }
+.tabel-item .col-satuan { width: 7%; }
+.tabel-item .col-total { width: 12.5%; }
+.tabel-item .col-aksi { width: 6.5%; text-align: right; }
+.tabel-item .form-control { padding-left: .55rem; padding-right: .55rem; }
+.tabel-item .form-control[readonly] { background: #f6f7fb; color: var(--rb-text); border-color: #e6e8f0; }
+.tabel-item .inp-total-jual { font-weight: 600; }
+.tabel-item .btn-hapus-baris { padding: .45rem .6rem; }
 .tabel-item .ts-wrapper { width: 100%; }
 .tabel-item .ts-wrapper, .tabel-item .ts-control { max-width: 100%; min-width: 0; }
 .tabel-item .ts-control { white-space: nowrap; flex-wrap: nowrap; overflow: hidden; }
+body .tabel-item .ts-wrapper.form-select .ts-control { padding-right: 1.9rem !important; } /* ruang untuk panah */
 .tabel-item .ts-control > .item { overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
 /* Saat mengetik pencarian, sembunyikan teks pilihan lama agar kotak cari tidak sesak ("Pi... |") */
 .tabel-item .ts-wrapper.single.input-active .ts-control > .item { display: none; }
 
-/* Layar lebar: kolom Barang & Supplier ikut melebar, tidak menyisakan ruang kosong */
-@media (min-width: 1500px) {
-    .tabel-item .col-barang { width: 26%; max-width: none; }
-    .tabel-item .col-supplier { width: 22%; max-width: none; }
-}
+/* Tambah item & total di bawah tabel */
+.tambah-baris { width: auto; max-width: 320px; }
+.tambah-baris input { max-width: 110px; }
+.total-nota { display: grid; gap: .6rem; max-width: 420px; }
+.total-nota > div:not(.small) { display: flex; align-items: center; gap: .75rem; }
+.total-nota label { flex: 0 0 6.5rem; margin: 0; font-weight: 700; font-size: 1.05rem; }
+.total-nota .form-control[readonly] { background: #f6f7fb; font-size: 1.05rem; }
 
 /* ---------- Badge status ---------- */
 .badge {
@@ -686,7 +701,12 @@ body select.is-invalid + .ts-wrapper .ts-control { border-color: var(--bs-form-i
     .app-content .table td[colspan]:only-child { justify-content: center; }
     .app-content .table td[colspan]:only-child::before { content: none; }
 
-    /* ---------- Form item nota: tiap item jadi kartu ---------- */
+    /* ---------- Form item nota: tiap item jadi kartu ----------
+       Item #n ........ [X]
+       Supplier (penuh) / Barang (penuh)
+       Qty | Harga Jual | Harga Beli
+       Satuan | Total Jual | Total Beli */
+    .tabel-item { table-layout: auto; }
     .tabel-item > tbody > tr.item-row {
         display: grid !important;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -711,6 +731,7 @@ body select.is-invalid + .ts-wrapper .ts-control { border-color: var(--bs-form-i
     }
 
     .tabel-item > tbody > tr.item-row > td.row-no {
+        display: block !important;
         grid-column: 1 / span 2;
         align-self: center;
         font-weight: 700;
@@ -729,22 +750,11 @@ body select.is-invalid + .ts-wrapper .ts-control { border-color: var(--bs-form-i
     }
 
     .tabel-item > tbody > tr.item-row > td.col-aksi { grid-column: 3; grid-row: 1; justify-self: end; }
+    .tabel-item > tbody > tr.item-row > td.col-aksi::before { content: none; }
     .tabel-item > tbody > tr.item-row > td.col-barang,
     .tabel-item > tbody > tr.item-row > td.col-supplier { grid-column: 1 / -1; }
-
-    .tabel-item > tbody > tr.item-row > td.col-subtotal {
-        grid-column: 1 / -1;
-        display: flex !important;
-        justify-content: space-between;
-        align-items: center;
-        padding-top: .6rem !important;
-        border-top: 1px dashed var(--rb-border);
-        text-align: right;
-    }
-
-    .tabel-item > tbody > tr.item-row > td.col-subtotal::before { display: inline; margin: 0; }
-    .tabel-item .lbl-satuan { text-align: left !important; }
     .tabel-item .form-control { padding-left: .6rem; padding-right: .6rem; }
+    .total-nota, .tambah-baris { max-width: none; }
 
 }
 
@@ -777,3 +787,125 @@ body select.is-invalid + .ts-wrapper .ts-control { border-color: var(--bs-form-i
     .app-header { padding-left: 1rem; padding-right: 1rem; }
     .app-header .subtitle { font-size: .78rem; }
 }
+
+/* =========================================================
+   WARNA SUPPLIER, KLASIFIKASI BARANG, MULTI PILIH
+   ========================================================= */
+
+/* Label supplier berwarna: <x-supplier> */
+.sup-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    max-width: 100%;
+    padding: .18rem .6rem .18rem .45rem;
+    border-radius: 999px;
+    font-size: .82rem;
+    line-height: 1.35;
+    color: color-mix(in srgb, var(--sw) 70%, #111827);
+    background: color-mix(in srgb, var(--sw) 12%, #fff);
+    border: 1px solid color-mix(in srgb, var(--sw) 30%, #fff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sup-tag > i,
+.chip-supplier > i,
+.titik-warna {
+    display: inline-block;
+    flex-shrink: 0;
+    width: .6rem;
+    height: .6rem;
+    border-radius: 50%;
+    background: var(--sw);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--sw) 25%, #fff);
+}
+
+.titik-warna { margin-right: .45rem; vertical-align: .05em; }
+
+/* Pilihan warna di form supplier */
+.pilih-warna {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    background: var(--sw);
+    box-shadow: 0 0 0 1px var(--rb-border);
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s;
+}
+
+.pilih-warna:hover { transform: scale(1.08); }
+.pilih-warna.aktif { box-shadow: 0 0 0 2px var(--sw); transform: scale(1.1); }
+.form-control-color { width: 2.6rem; height: 2.2rem; padding: .2rem; border-radius: 10px; }
+
+/* Tombol klasifikasi barang per supplier */
+.grup-supplier .btn { display: inline-flex; align-items: center; gap: .4rem; }
+.chip-supplier .badge { background: color-mix(in srgb, var(--sw) 15%, #fff); color: color-mix(in srgb, var(--sw) 70%, #111827); }
+.chip-supplier.aktif {
+    background: color-mix(in srgb, var(--sw) 14%, #fff);
+    border-color: var(--sw);
+    color: color-mix(in srgb, var(--sw) 70%, #111827);
+    font-weight: 600;
+}
+
+/* Judul kelompok supplier di tabel barang */
+.app-content .table > tbody > tr.baris-grup > td {
+    background: var(--rb-head-bg);
+    padding-top: .55rem;
+    padding-bottom: .55rem;
+    text-align: left;
+}
+
+.app-content .table > tbody > tr.baris-grup:hover > td { --bs-table-bg-state: transparent; }
+
+
+/* Tom Select multi pilih (filter laporan) */
+body .ts-wrapper.multi .ts-control { flex-wrap: wrap; gap: .25rem; padding: .3rem .5rem; min-height: calc(1.5em + .75rem + 2px); }
+.ts-wrapper.multi .ts-control > .item {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: .1rem .2rem .1rem .5rem;
+    border-radius: 999px;
+    background: var(--rb-primary-soft);
+    color: var(--rb-primary-dark);
+    border: 1px solid transparent;
+    font-size: .82rem;
+}
+.ts-wrapper.multi .ts-control > .item .remove { border-left: 0; margin-left: .15rem; padding: 0 .35rem; border-radius: 999px; color: inherit; }
+.ts-wrapper.multi .ts-control > .item .remove:hover { background: rgba(0, 0, 0, .06); }
+.ts-dropdown .optgroup-header { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--rb-muted); padding: .55rem .85rem .3rem; }
+.ts-dropdown .optgroup + .optgroup { border-top: 1px solid var(--rb-border); }
+
+@media (max-width: 1279.98px) {
+    /* Judul kelompok supplier tetap rata kiri saat tabel menjadi kartu */
+    .app-content .table > tbody > tr.baris-grup { padding: 0; border-bottom: 1px solid var(--rb-border); }
+    .app-content .table > tbody > tr.baris-grup > td {
+        justify-content: flex-start;
+        padding: .55rem 1.1rem !important;
+        background: var(--rb-head-bg);
+    }
+}
+
+/* Multi pilih: input ketik tetap sebaris dengan pilihan agar tinggi kontrol stabil */
+.ts-wrapper.multi .ts-control > input { flex: 1 1 3rem; min-width: 3rem !important; margin: 0 !important; }
+.ts-wrapper.multi.has-items .ts-control > input::placeholder { color: transparent; }
+
+/* Tabel rincian laporan yang kolomnya banyak */
+@media (min-width: 1280px) {
+    .app-content .tabel-rapat > :is(thead, tbody, tfoot) > tr > :is(th, td) { padding-left: .5rem; padding-right: .5rem; }
+    .app-content .tabel-rapat > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child { padding-left: 1rem; }
+    .app-content .tabel-rapat > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child { padding-right: 1rem; }
+    .app-content .tabel-rapat .sup-tag { font-size: .78rem; }
+}
+
+@media (max-width: 1279.98px) {
+    .app-content .table > tbody > tr.baris-grup > td[colspan] { justify-content: flex-start !important; }
+}
+
+/* Tombol pulihkan (Riwayat Hapus) */
+.btn-success-soft { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.btn-success-soft:hover, .btn-success-soft:focus { background: #bbf7d0; color: #166534; border-color: #86efac; }
+.grup-supplier .btn > .bi { margin-right: .1rem; }

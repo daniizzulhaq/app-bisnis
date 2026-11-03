@@ -10,6 +10,22 @@
                 @if ($barang->exists) @method('PUT') @endif
 
                 <div class="row g-3">
+                    <div class="col-12">
+                        <label for="supplier_id" class="form-label">Supplier</label>
+                        <select id="supplier_id" name="supplier_id" class="form-select tom-select tom-warna @error('supplier_id') is-invalid @enderror"
+                                data-placeholder="Pilih supplier langganan...">
+                            <option value="">Tanpa supplier</option>
+                            @foreach ($suppliers as $s)
+                                <option value="{{ $s->id }}" data-warna="{{ $s->warna }}"
+                                    @selected((string) old('supplier_id', $barang->supplier_id) === (string) $s->id)>{{ $s->nama }}</option>
+                            @endforeach
+                        </select>
+                        @error('supplier_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                        <div class="form-text">
+                            Barang dikelompokkan per supplier, dan supplier ini otomatis terpilih saat barang dipakai di nota.
+                            @if ($suppliers->isEmpty()) <a href="{{ route('supplier.create') }}">Tambah supplier</a> dulu. @endif
+                        </div>
+                    </div>
                     <div class="col-md-8">
                         <label for="nama" class="form-label">Nama Barang <span class="text-danger">*</span></label>
                         <input type="text" id="nama" name="nama" value="{{ old('nama', $barang->nama) }}" maxlength="100"

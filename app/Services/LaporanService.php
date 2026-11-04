@@ -62,7 +62,7 @@ class LaporanService
 
         return [
             'rows' => $rows,
-            'rincian' => $o->klienIds ? $this->rincian($dari, $sampai, $o, 'klien_id', $nama) : collect(),
+            'rincian' => $this->rincian($dari, $sampai, $o, 'klien_id', $nama),
             'total' => $this->jumlahkan($rows, ['nota', 'qty', 'total_beli', 'total_jual', 'laba', 'dibayar', 'sisa']),
         ];
     }
@@ -196,6 +196,7 @@ class LaporanService
 
         $items = $this->gabungPerTanggal($items, $pisahKlien);
         $ids = $kunci === 'klien_id' ? $o->klienIds : $o->supplierIds;
+        $ids = $ids ?: $items->pluck($kunci)->unique()->all();
 
         return collect($ids)
             ->map(fn ($id) => (object) [

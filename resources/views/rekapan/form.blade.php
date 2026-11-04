@@ -1,11 +1,14 @@
 @extends('layouts.app')
 
+@section('viewport', 'width=1440, user-scalable=yes')
+
 @section('title', $transaksi->exists ? 'Edit Nota' : 'Nota Baru')
 @section('subtitle', $transaksi->exists ? $transaksi->klien->nama.' · '.tanggal($transaksi->tanggal).' · perubahan total akan menghitung ulang status bayar' : 'Catat penjualan sayur ke klien')
 
 @php
-    // Prioritas: input lama (gagal validasi) > detail nota (edit) > 10 baris kosong (nota baru)
-    $rows = old('items', $items) ?: array_fill(0, 10, []);
+    // Nota baru dimulai tanpa baris; input gagal validasi dan detail edit tetap dipertahankan.
+    $rows = old('items', $items);
+    $dariInputLama = session()->hasOldInput('items');
     $dataBarang = $barangs->mapWithKeys(fn ($b) => [$b->id => [
         'beli' => (float) $b->harga_beli_default,
         'jual' => (float) $b->harga_jual_default,
@@ -40,6 +43,7 @@
     <form method="POST" id="form-nota" novalidate
           action="{{ $transaksi->exists ? route('rekapan.update', $transaksi) : route('rekapan.store') }}">
         @csrf
+        <input type="hidden" name="kembali" value="{{ $kembali }}">
         @if ($transaksi->exists) @method('PUT') @endif
 
         <div class="card mb-3">
@@ -89,7 +93,7 @@
                     </thead>
                     <tbody id="item-body">
                     @foreach ($rows as $i => $item)
-                        @include('rekapan._item-row', ['i' => $loop->index, 'item' => $item])
+                        @include('rekapan._item-row', ['i' => $loop->index, 'item' => $item, 'dariInput' => $dariInputLama])
                     @endforeach
                     </tbody>
                 </table>
@@ -122,7 +126,7 @@
         </div>
 
         <div class="d-flex justify-content-end gap-2 mt-3 form-actions">
-            <a href="{{ $transaksi->exists ? route('rekapan.show', $transaksi) : route('rekapan.index') }}" class="btn btn-light">Batal</a>
+            <a href="{{ $transaksi->exists ? route('rekapan.show', [$transaksi, 'kembali' => $kembali]) : $kembali }}" class="btn btn-light">Batal</a>
             <button type="submit" class="btn btn-primary" data-loading="Menyimpan...">
                 <i class="bi bi-check2 me-1"></i> Simpan Nota
             </button>
@@ -227,10 +231,6 @@
     body.addEventListener('click', (e) => {
         const btn = e.target.closest('.btn-hapus-baris');
         if (!btn) return;
-        if (body.querySelectorAll('.item-row').length === 1) {
-            RB.toast.fire({ icon: 'warning', title: 'Nota minimal berisi 1 item.' });
-            return;
-        }
         btn.closest('.item-row').remove();
         hitung();
     });

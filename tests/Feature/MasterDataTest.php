@@ -27,6 +27,18 @@ class MasterDataTest extends TestCase
         $this->get('/klien')->assertOk()->assertSee('Belum ada klien');
     }
 
+    public function test_harga_barang_tetap_utuh_setelah_validasi_gagal(): void
+    {
+        $data = ['nama' => '', 'satuan' => 'kg', 'harga_beli_default' => '60.000', 'harga_jual_default' => '64.000'];
+        $this->from('/barang/create')->post('/barang', $data)->assertSessionHasErrors('nama');
+        $this->get('/barang/create')->assertOk()
+            ->assertSee('value="60.000"', false)->assertSee('value="64.000"', false);
+
+        $data['nama'] = 'Bumbu Pecel';
+        $this->post('/barang', $data)->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('barangs', ['nama' => 'Bumbu Pecel', 'harga_beli_default' => 60000, 'harga_jual_default' => 64000]);
+    }
+
     public function test_crud_supplier(): void
     {
         $this->post('/supplier', ['nama' => 'Pak Darto', 'no_hp' => '0812 345'])

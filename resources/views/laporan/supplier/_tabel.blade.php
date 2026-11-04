@@ -13,8 +13,8 @@
     </table>
 @endif
 
-@if ($html) <div class="card mb-3"><div class="card-header">Ringkasan per Supplier</div><div class="table-responsive"> @endif
-<table class="{{ $html ? 'table table-hover align-middle' : 'tabel' }}">
+@if ($html) <div class="card mb-3"><div class="card-header">Ringkasan per Supplier</div><div class="table-responsive laporan-scroll"> @endif
+<table class="{{ $html ? 'table table-hover align-middle laporan-table' : 'tabel laporan-table' }}">
     <thead>
     <tr>
         <th>No</th>

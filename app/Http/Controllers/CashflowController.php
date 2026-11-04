@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CashflowRequest;
 use App\Models\Cashflow;
+use App\Services\ModalService;
 use App\Support\Periode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -58,13 +59,18 @@ class CashflowController extends Controller
             'totalKeluar' => (float) $total->keluar,
             'saldoAkhir' => $saldoAkhir,
             'saldoBerjalan' => $saldoBerjalan,
+            'modal' => app(ModalService::class)->ringkasan($periode),
             'kategoris' => Cashflow::distinct()->orderBy('kategori')->pluck('kategori'),
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
-        return view('cashflow.form', ['cashflow' => new Cashflow(['tanggal' => now(), 'tipe' => 'keluar'])]);
+        $modal = $request->input('kategori') === 'Modal';
+
+        return view('cashflow.form', ['cashflow' => new Cashflow([
+            'tanggal' => now(), 'tipe' => $modal ? 'masuk' : 'keluar', 'kategori' => $modal ? 'Modal' : null,
+        ])]);
     }
 
     public function store(CashflowRequest $request): RedirectResponse

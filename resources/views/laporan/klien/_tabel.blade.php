@@ -13,8 +13,8 @@
     </table>
 @endif
 
-@if ($html) <div class="card mb-3"><div class="card-header">Ringkasan per Klien</div><div class="table-responsive"> @endif
-<table class="{{ $html ? 'table table-hover align-middle' : 'tabel' }}">
+@if ($html) <div class="card mb-3"><div class="card-header">Ringkasan per Klien</div><div class="table-responsive laporan-scroll"> @endif
+<table class="{{ $html ? 'table table-hover align-middle laporan-table' : 'tabel laporan-table' }}">
     <thead>
     <tr>
         <th>No</th>
@@ -74,7 +74,7 @@
 @if ($html)
     <p class="small text-secondary mt-3 mb-0">
         <i class="bi bi-info-circle me-1"></i>
-        Klik nama klien untuk melihat rincian barang. Pilih beberapa klien di filter untuk menampilkan rinciannya sekaligus.
+        Rincian barang semua klien ditampilkan di bawah. Pilih klien di filter untuk membatasi rincian.
         @if ($piutang)
             <br><b>Dibayar</b> = pembayaran klien di dalam periode. <b>Sisa piutang</b> = seluruh penjualan dikurangi seluruh pembayaran sampai tanggal akhir periode
             (dihitung per klien, tidak terpengaruh filter supplier).

@@ -20,6 +20,10 @@
         .legenda-item { display: inline-block; margin: 0 10px 3px 0; white-space: nowrap; }
         .legenda-kotak { display: inline-block; width: 10px; height: 8px; border: 1px solid; margin-right: 3px; vertical-align: -1px; }
         table.tabel tr.total td { background: #f5f6fa; font-weight: bold; }
+        table.laporan-table { table-layout: fixed; }
+        table.laporan-table th, table.laporan-table td { height: 24px; vertical-align: middle; overflow-wrap: break-word; }
+        table.laporan-table .num { white-space: normal; }
+        table.laporan-table td[align="center"] { text-align: center; }
         .footer { position: fixed; bottom: -10px; left: 0; right: 0; font-size: 8px; color: #8a8fa3; }
     </style>
 </head>

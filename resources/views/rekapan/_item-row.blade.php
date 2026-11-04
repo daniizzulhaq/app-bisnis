@@ -6,6 +6,9 @@
 --}}
 @php
     $err = fn ($f) => is_numeric($i) ? $errors->first("items.$i.$f") : null;
+    // Input lama masih memakai format ketikan pengguna (64.000), sedangkan model
+    // memakai angka database (64000.00). Hanya angka database yang diformat ulang.
+    $dariInput = $dariInput ?? false;
 @endphp
 <tr class="item-row">
     <td class="row-no"></td>
@@ -34,17 +37,17 @@
         @if ($err('barang_id')) <div class="invalid-feedback d-block">{{ $err('barang_id') }}</div> @endif
     </td>
     <td class="col-qty">
-        <input type="text" name="items[{{ $i }}][qty]" value="{{ input_qty($item['qty'] ?? '') }}" inputmode="decimal"
+        <input type="text" name="items[{{ $i }}][qty]" value="{{ $dariInput ? ($item['qty'] ?? '') : input_qty($item['qty'] ?? '') }}" inputmode="decimal"
                class="form-control text-end inp-qty @if($err('qty')) is-invalid @endif" autocomplete="off" aria-label="Qty">
         @if ($err('qty')) <div class="invalid-feedback d-block">{{ $err('qty') }}</div> @endif
     </td>
     <td class="col-harga">
-        <input type="text" name="items[{{ $i }}][harga_jual]" value="{{ input_uang($item['harga_jual'] ?? '') }}" inputmode="numeric"
+        <input type="text" name="items[{{ $i }}][harga_jual]" value="{{ $dariInput ? ($item['harga_jual'] ?? '') : input_uang($item['harga_jual'] ?? '') }}" inputmode="numeric"
                class="form-control text-end input-uang inp-jual @if($err('harga_jual')) is-invalid @endif" autocomplete="off" aria-label="Harga jual">
         @if ($err('harga_jual')) <div class="invalid-feedback d-block">{{ $err('harga_jual') }}</div> @endif
     </td>
     <td class="col-harga">
-        <input type="text" name="items[{{ $i }}][harga_beli]" value="{{ input_uang($item['harga_beli'] ?? '') }}" inputmode="numeric"
+        <input type="text" name="items[{{ $i }}][harga_beli]" value="{{ $dariInput ? ($item['harga_beli'] ?? '') : input_uang($item['harga_beli'] ?? '') }}" inputmode="numeric"
                class="form-control text-end input-uang inp-beli @if($err('harga_beli')) is-invalid @endif" autocomplete="off" aria-label="Harga beli">
         @if ($err('harga_beli')) <div class="invalid-feedback d-block">{{ $err('harga_beli') }}</div> @endif
     </td>

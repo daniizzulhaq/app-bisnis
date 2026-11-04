@@ -29,7 +29,10 @@
                 <input type="date" id="sampai" name="sampai" value="{{ $periode->sampaiStr() }}" class="form-control">
             </div>
             <div class="col-md-6 col-xl-4">
-                <label class="form-label" for="f-klien">Klien <span class="text-secondary fw-normal small">· bisa pilih beberapa</span></label>
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                    <label class="form-label mb-0" for="f-klien">Klien <span class="text-secondary fw-normal small">· bisa pilih beberapa</span></label>
+                    <button type="button" id="semua-klien" class="btn btn-light btn-sm">Semua klien</button>
+                </div>
                 <select id="f-klien" name="klien_id[]" multiple class="form-select tom-select" data-placeholder="Semua klien">
                     @foreach ($kliens as $k)
                         <option value="{{ $k->id }}" @selected(in_array($k->id, $opsi->klienIds))>{{ $k->nama }}</option>
@@ -92,3 +95,16 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('semua-klien').addEventListener('click', (event) => {
+        const select = document.getElementById('f-klien');
+        if (select.tomselect) select.tomselect.clear();
+        else [...select.options].forEach((option) => { option.selected = false; });
+        event.currentTarget.form.requestSubmit();
+    });
+});
+</script>
+@endpush

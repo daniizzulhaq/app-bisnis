@@ -8,6 +8,7 @@ use App\Models\Klien;
 use App\Models\Pembayaran;
 use App\Models\Supplier;
 use App\Models\Transaksi;
+use App\Services\TagihanSupplierService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
@@ -112,7 +113,7 @@ class RiwayatHapusController extends Controller
             'pembayaran' => [
                 'judul' => ($m->jenis === 'klien' ? 'Terima dari ' : 'Bayar ke ').$m->nama_pihak.' · '.rupiah($m->jumlah),
                 'ket' => tanggal($m->tanggal).' · '.(Pembayaran::METODE[$m->metode] ?? $m->metode)
-                    .($m->transaksi ? ' · Nota '.tanggal($m->transaksi->tanggal) : ''),
+                    .($m->tanggal_nota ? ' · Nota semua klien '.tanggal($m->tanggal_nota) : ($m->transaksi ? ' · Nota '.tanggal($m->transaksi->tanggal) : '')),
             ],
             'cashflow' => [
                 'judul' => 'Cashflow '.($m->tipe === 'masuk' ? 'masuk' : 'keluar').' '.rupiah($m->nominal),
@@ -135,6 +136,13 @@ class RiwayatHapusController extends Controller
         }
 
         if ($jenis === 'pembayaran') {
+            if ($m->jenis === 'supplier' && $m->tanggal_nota) {
+                $tagihan = app(TagihanSupplierService::class)->perTanggal($m->supplier_id)
+                    ->firstWhere('tanggal', $m->tanggal_nota->toDateString());
+                if (! $tagihan || (float) $m->jumlah > $tagihan->sisa + 0.009) {
+                    return 'Pembayaran ini melebihi sisa total beli supplier pada tanggal nota, jadi tidak dapat dipulihkan.';
+                }
+            }
             $pihak = $m->jenis === 'klien' ? $m->klien : $m->supplier;
             if ($pihak?->trashed()) {
                 return ($m->jenis === 'klien' ? 'Klien' : 'Supplier')." \"{$pihak->nama}\" juga ada di Riwayat Hapus. Pulihkan terlebih dahulu.";

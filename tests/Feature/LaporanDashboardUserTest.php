@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\TransaksiService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
 class LaporanDashboardUserTest extends TestCase
@@ -71,6 +72,32 @@ class LaporanDashboardUserTest extends TestCase
 
         $this->get("/laporan/supplier?dari=2026-10-01&sampai=2026-11-30&supplier_id={$this->supplier->id}")
             ->assertOk()->assertSee('Barang dari');
+    }
+
+    public function test_semua_klien_langsung_memuat_rincian_dan_ekspor(): void
+    {
+        $klien = Klien::create(['nama' => 'Resto Melati']);
+        $barang = Barang::create(['nama' => 'Tomat', 'satuan' => 'kg']);
+        app(TransaksiService::class)->simpan([
+            'tanggal' => '2026-11-03', 'klien_id' => $klien->id,
+            'items' => [['barang_id' => $barang->id, 'supplier_id' => $this->supplier->id, 'qty' => 1, 'harga_beli' => 10000, 'harga_jual' => 15000]],
+        ]);
+        $url = '/laporan/klien?dari=2026-11-01&sampai=2026-11-30';
+        $res = $this->get($url)->assertOk()->assertSee('Brokoli')->assertSee('Tomat');
+        $this->assertEqualsCanonicalizing([$this->klien->id, $klien->id], $res->viewData('rincian')->pluck('id')->all());
+        $this->assertCount(1, $res->viewData('rincian')->first()->items);
+
+        $filtered = $this->get($url.'&klien_id[]='.$klien->id)->assertOk();
+        $this->assertSame([$klien->id], $filtered->viewData('rincian')->pluck('id')->all());
+
+        $this->get($url.'&export=pdf')->assertOk();
+        $excel = $this->get($url.'&export=excel')->assertOk();
+        $sheet = IOFactory::load($excel->baseResponse->getFile()->getPathname())->getActiveSheet();
+        $values = collect($sheet->toArray())->flatten();
+        $this->assertContains('Brokoli', $values);
+        $this->assertContains('Tomat', $values);
+        $this->assertEquals(22, $sheet->getDefaultColumnDimension()->getWidth());
+        $this->assertEquals(36, $sheet->getDefaultRowDimension()->getRowHeight());
     }
 
     public function test_laporan_per_barang(): void

@@ -50,6 +50,9 @@ class PembayaranObserver
     {
         $p->loadMissing(['klien', 'supplier', 'transaksi']);
         $nota = $p->transaksi ? ' · Nota '.tanggal($p->transaksi->tanggal) : '';
+        if ($p->tanggal_nota) {
+            $nota = ' · Nota semua klien '.tanggal($p->tanggal_nota);
+        }
 
         return [
             'tanggal' => $p->tanggal,

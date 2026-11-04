@@ -48,7 +48,7 @@
                         <div class="input-group has-validation">
                             <span class="input-group-text">Rp</span>
                             <input type="text" id="harga_beli_default" name="harga_beli_default" inputmode="numeric"
-                                   value="{{ input_uang(old('harga_beli_default', $barang->harga_beli_default)) }}"
+                                   value="{{ old('harga_beli_default', input_uang($barang->harga_beli_default)) }}"
                                    class="form-control input-uang text-end @error('harga_beli_default') is-invalid @enderror" placeholder="0" required>
                             @error('harga_beli_default') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
@@ -59,7 +59,7 @@
                         <div class="input-group has-validation">
                             <span class="input-group-text">Rp</span>
                             <input type="text" id="harga_jual_default" name="harga_jual_default" inputmode="numeric"
-                                   value="{{ input_uang(old('harga_jual_default', $barang->harga_jual_default)) }}"
+                                   value="{{ old('harga_jual_default', input_uang($barang->harga_jual_default)) }}"
                                    class="form-control input-uang text-end @error('harga_jual_default') is-invalid @enderror" placeholder="0" required>
                             @error('harga_jual_default') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>

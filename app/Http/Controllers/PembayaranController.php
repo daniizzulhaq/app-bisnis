@@ -7,7 +7,7 @@ use App\Models\Klien;
 use App\Models\Pembayaran;
 use App\Models\Supplier;
 use App\Models\Transaksi;
-use App\Models\TransaksiDetail;
+use App\Services\TagihanSupplierService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -107,21 +107,23 @@ class PembayaranController extends Controller
         $pilih = $request->integer('selected');
 
         if ($request->jenis === 'supplier') {
-            // Total belanja ke supplier ini per nota
-            $rows = TransaksiDetail::query()
-                ->join('transaksis', 'transaksis.id', '=', 'transaksi_details.transaksi_id')
-                ->where('transaksi_details.supplier_id', $id)
-                ->whereNull('transaksis.deleted_at')
-                ->join('kliens', 'kliens.id', '=', 'transaksis.klien_id')
-                ->groupBy('transaksis.id', 'transaksis.tanggal', 'kliens.nama')
-                ->orderByDesc('transaksis.tanggal')
-                ->limit(100)
-                ->get(['transaksis.id', 'transaksis.tanggal', 'kliens.nama AS klien', DB::raw('SUM(subtotal_beli) AS total')]);
+            $rows = app(TagihanSupplierService::class)->perTanggal($id, $request->integer('pembayaran') ?: null);
+            $options = $rows->map(fn ($r) => [
+                'value' => 'tanggal:'.$r->tanggal,
+                'text' => tanggal($r->tanggal).' · Semua klien · '.$r->nota.' nota · beli '.rupiah($r->total).' · sisa '.rupiah($r->sisa),
+                'total' => $r->total,
+                'sisa' => $r->sisa,
+            ]);
 
-            return response()->json($rows->map(fn ($r) => [
-                'value' => $r->id,
-                'text' => tanggal($r->tanggal)." · {$r->klien} · beli ".rupiah($r->total),
-            ]));
+            // Nota individual lama tetap tersedia saat mengedit pembayaran sebelumnya.
+            if ($pilih) {
+                $nota = Transaksi::whereHas('details', fn ($q) => $q->where('supplier_id', $id))->find($pilih);
+                if ($nota) {
+                    $options->push(['value' => $nota->id, 'text' => 'Nota '.tanggal($nota->tanggal).' · '.$nota->klien->nama.' (nota individual)']);
+                }
+            }
+
+            return response()->json($options);
         }
 
         // Nota klien yang belum lunas (+ nota yang sedang dipilih saat edit)

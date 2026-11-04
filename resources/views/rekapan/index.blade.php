@@ -119,7 +119,7 @@
                     <tbody>
                     @foreach ($transaksis as $t)
                         <tr>
-                            <td class="text-nowrap"><a href="{{ route('rekapan.show', $t) }}" class="fw-semibold text-decoration-none">{{ tanggal($t->tanggal) }}</a></td>
+                            <td class="text-nowrap"><a href="{{ route('rekapan.show', [$t, 'kembali' => request()->fullUrl()]) }}" class="fw-semibold text-decoration-none">{{ tanggal($t->tanggal) }}</a></td>
                             <td class="fw-semibold">{{ $t->klien->nama }}</td>
                             <td class="num text-secondary hide-mobile col-opsional">{{ $t->details_count }}</td>
                             <td class="num hide-mobile col-opsional">{{ angka($t->total_qty) }}</td>
@@ -129,8 +129,8 @@
                             <td><x-status-bayar :status="$t->status_bayar" /></td>
                             <td class="text-end text-nowrap">
                                 <div class="d-inline-flex gap-1">
-                                    <a href="{{ route('rekapan.show', $t) }}" class="btn btn-sm btn-light" title="Detail"><i class="bi bi-eye"></i></a>
-                                    <a href="{{ route('rekapan.edit', $t) }}" class="btn btn-sm btn-light" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                                    <a href="{{ route('rekapan.show', [$t, 'kembali' => request()->fullUrl()]) }}" class="btn btn-sm btn-light" title="Detail"><i class="bi bi-eye"></i></a>
+                                    <a href="{{ route('rekapan.edit', [$t, 'kembali' => request()->fullUrl()]) }}" class="btn btn-sm btn-light" title="Edit"><i class="bi bi-pencil-square"></i></a>
                                     <a href="{{ route('rekapan.cetak', $t) }}" target="_blank" class="btn btn-sm btn-light" title="Cetak nota"><i class="bi bi-printer"></i></a>
                                     <form method="POST" action="{{ route('rekapan.destroy', $t) }}" class="form-delete" data-nama="nota {{ $t->klien->nama }} tanggal {{ tanggal($t->tanggal) }}">
                                         @csrf @method('DELETE')

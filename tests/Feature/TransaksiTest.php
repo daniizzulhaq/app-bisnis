@@ -9,6 +9,7 @@ use App\Models\Supplier;
 use App\Models\Transaksi;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class TransaksiTest extends TestCase
@@ -72,7 +73,7 @@ class TransaksiTest extends TestCase
 
     public function test_nota_tanpa_nomor_dan_baris_tambahan_kosong_diabaikan(): void
     {
-        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('transaksis', 'no_nota'));
+        $this->assertFalse(Schema::hasColumn('transaksis', 'no_nota'));
 
         // Baris yang hanya berisi supplier/harga (barang & qty kosong) dianggap kosong
         $data = $this->payload();
@@ -103,6 +104,112 @@ class TransaksiTest extends TestCase
         $data = $this->payload();
         $data['items'][0]['qty'] = '0';
         $this->post('/rekapan', $data)->assertSessionHasErrors(['items.0.qty' => 'Qty harus lebih dari 0.']);
+    }
+
+    public function test_harga_50_item_tetap_utuh_setelah_qty_gagal_validasi_dan_disimpan_ulang(): void
+    {
+        $items = array_fill(0, 50, [
+            'barang_id' => (string) $this->wortel->id,
+            'supplier_id' => (string) $this->s1->id,
+            'qty' => '1', 'harga_beli' => '60.000', 'harga_jual' => '64.000',
+        ]);
+        $items[0]['qty'] = '1,5';
+        $items[25]['qty'] = '';
+        $data = $this->payload(['items' => $items, 'keterangan' => 'Pesanan 50 item']);
+
+        foreach (['', '0'] as $qtySalah) {
+            $data['items'][25]['qty'] = $qtySalah;
+            $this->from('/rekapan/create')->post('/rekapan', $data)->assertSessionHasErrors('items.25.qty');
+            $this->assertDatabaseCount('transaksis', 0);
+            $res = $this->get('/rekapan/create')->assertOk()->assertSee('Pesanan 50 item');
+            $restored = $this->itemsDariForm($res->getContent());
+            $this->assertCount(50, $restored);
+            foreach ($restored as $i => $item) {
+                $this->assertSame('64.000', $item['harga_jual'], "Harga jual baris {$i} berubah setelah validasi.");
+                $this->assertSame('60.000', $item['harga_beli'], "Harga beli baris {$i} berubah setelah validasi.");
+                $this->assertSame($items[$i]['barang_id'], $item['barang_id']);
+                $this->assertSame($items[$i]['supplier_id'], $item['supplier_id']);
+            }
+            $this->assertEquals(1.5, (float) str_replace(',', '.', $restored[0]['qty']));
+            $data['items'] = $restored;
+        }
+
+        $data['items'][25]['qty'] = '1';
+        $this->post('/rekapan', $data)->assertSessionHasNoErrors()->assertRedirect();
+        $nota = Transaksi::firstOrFail();
+        $this->assertCount(50, $nota->details);
+        $this->assertEquals(50.5 * 64000, $nota->total_jual);
+        $this->assertEquals(50.5 * 60000, $nota->total_beli);
+    }
+
+    public function test_harga_edit_nota_tetap_utuh_setelah_validasi_gagal(): void
+    {
+        $this->post('/rekapan', $this->payload());
+        $nota = Transaksi::firstOrFail();
+        $data = $this->payload();
+        $data['items'][0]['qty'] = '';
+        $edit = route('rekapan.edit', $nota);
+        $this->from($edit)->put(route('rekapan.update', $nota), $data)->assertSessionHasErrors('items.0.qty');
+        $restored = $this->itemsDariForm($this->get($edit)->assertOk()->getContent());
+        $this->assertSame('12.000', $restored[0]['harga_jual']);
+        $this->assertSame('9.000', $restored[0]['harga_beli']);
+        $this->assertSame('4.000', $restored[1]['harga_jual']);
+        $this->assertSame('2.500', $restored[1]['harga_beli']);
+
+        $restored[0]['qty'] = '12,5';
+        $this->put(route('rekapan.update', $nota), $this->payload(['items' => $restored]))->assertSessionHasNoErrors();
+        $this->assertEquals(230000, $nota->fresh()->total_jual);
+        $this->assertEquals(162500, $nota->fresh()->total_beli);
+
+        // Nilai dari database tetap diformat sebagai Rupiah saat membuka edit lagi.
+        $editItems = $this->itemsDariForm($this->get($edit)->assertOk()->getContent());
+        $this->assertSame('12.000', $editItems[0]['harga_jual']);
+        $this->assertSame('2.500', $editItems[1]['harga_beli']);
+    }
+
+    /** Ambil isian yang benar-benar dirender, seperti dikirim ulang oleh browser. */
+    private function itemsDariForm(string $html): array
+    {
+        $errorsSebelumnya = libxml_use_internal_errors(true);
+        $dom = new \DOMDocument;
+        $dom->loadHTML($html);
+        libxml_clear_errors();
+        libxml_use_internal_errors($errorsSebelumnya);
+        $xpath = new \DOMXPath($dom);
+        $items = [];
+        foreach ($xpath->query('//tbody[@id="item-body"]//input[@name] | //tbody[@id="item-body"]//select[@name]') as $field) {
+            if (! preg_match('/^items\[(\d+)\]\[(\w+)\]$/', $field->getAttribute('name'), $matches)) {
+                continue;
+            }
+            $items[(int) $matches[1]][$matches[2]] = $field->tagName === 'select'
+                ? ($xpath->query('.//option[@selected]', $field)->item(0)?->getAttribute('value') ?? '')
+                : $field->getAttribute('value');
+        }
+
+        return $items;
+    }
+
+    public function test_edit_nota_mempertahankan_filter_dan_halaman_rekapan(): void
+    {
+        $this->post('/rekapan', $this->payload());
+        $nota = Transaksi::firstOrFail();
+        $asal = route('rekapan.index', ['dari' => '2026-11-02', 'sampai' => '2026-11-03', 'klien_id' => $this->klien->id, 'page' => 2]);
+        $edit = route('rekapan.edit', [$nota, 'kembali' => $asal]);
+
+        $this->get($edit)->assertOk()->assertSee('name="kembali" value="'.e($asal).'"', false);
+        $detail = route('rekapan.show', [$nota, 'kembali' => $asal]);
+        $this->put(route('rekapan.update', $nota), $this->payload(['kembali' => $asal]))->assertRedirect($detail);
+        $this->get($detail)->assertOk()->assertSee('href="'.e($asal).'"', false);
+
+        $this->get(route('rekapan.edit', [$nota, 'kembali' => 'https://example.com']))
+            ->assertViewHas('kembali', route('rekapan.index'));
+    }
+
+    public function test_nota_baru_dimulai_dengan_nol_baris_dan_viewport_desktop(): void
+    {
+        $res = $this->get('/rekapan/create')->assertOk()->assertSee('width=1440, user-scalable=yes', false);
+        preg_match('/<tbody id="item-body">(.*?)<\/tbody>/s', $res->getContent(), $matches);
+        $this->assertSame('', trim($matches[1]));
     }
 
     public function test_halaman_rekapan_filter_detail_edit_cetak(): void

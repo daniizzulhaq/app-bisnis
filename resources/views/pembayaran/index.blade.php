@@ -118,7 +118,9 @@
                             </td>
                             <td class="fw-semibold">{{ $p->nama_pihak }}</td>
                             <td>
-                                @if ($p->transaksi)
+                                @if ($p->tanggal_nota)
+                                    <span>Semua klien · {{ tanggal($p->tanggal_nota) }}</span>
+                                @elseif ($p->transaksi)
                                     <a href="{{ route('rekapan.show', $p->transaksi_id) }}" class="text-decoration-none">Nota {{ tanggal($p->transaksi->tanggal) }}</a>
                                 @else
                                     <span class="text-secondary">-</span>

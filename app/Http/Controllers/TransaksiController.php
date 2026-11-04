@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\TransaksiRequest;
 use App\Models\Barang;
 use App\Models\Klien;
+use App\Models\Pembayaran;
 use App\Models\Supplier;
 use App\Models\Transaksi;
 use App\Services\TransaksiService;
@@ -21,9 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class TransaksiController extends Controller
 {
-    public function __construct(private TransaksiService $service)
-    {
-    }
+    public function __construct(private TransaksiService $service) {}
 
     public function index(Request $request): View
     {
@@ -52,11 +51,12 @@ class TransaksiController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         return view('rekapan.form', [
             'transaksi' => new Transaksi(['tanggal' => now()]),
             'items' => [],
+            'kembali' => $this->kembaliUrl($request),
             ...$this->dataPilihan(),
         ]);
     }
@@ -69,7 +69,7 @@ class TransaksiController extends Controller
             ->with('success', "{$transaksi->load('klien')->label} berhasil disimpan.");
     }
 
-    public function show(Transaksi $transaksi): View
+    public function show(Request $request, Transaksi $transaksi): View
     {
         $transaksi->load([
             'klien',
@@ -82,17 +82,19 @@ class TransaksiController extends Controller
 
         return view('rekapan.show', [
             'transaksi' => $transaksi,
+            'kembali' => $this->kembaliUrl($request),
             'dibayar' => $dibayar,
             'sisa' => max(0, (float) $transaksi->total_jual - $dibayar),
         ]);
     }
 
-    public function edit(Transaksi $transaksi): View
+    public function edit(Request $request, Transaksi $transaksi): View
     {
         $transaksi->load('details');
 
         return view('rekapan.form', [
             'transaksi' => $transaksi,
+            'kembali' => $this->kembaliUrl($request),
             'items' => $transaksi->details->map->only(['barang_id', 'supplier_id', 'qty', 'harga_beli', 'harga_jual'])->all(),
             ...$this->dataPilihan(),
         ]);
@@ -102,12 +104,25 @@ class TransaksiController extends Controller
     {
         $this->service->simpan($request->validated(), $transaksi);
 
-        return redirect()->route('rekapan.show', $transaksi)
+        $tujuan = ['transaksi' => $transaksi];
+        if ($request->filled('kembali')) {
+            $tujuan['kembali'] = $this->kembaliUrl($request);
+        }
+
+        return redirect()->route('rekapan.show', $tujuan)
             ->with('success', "{$transaksi->load('klien')->label} berhasil diperbarui.");
     }
 
     public function destroy(Transaksi $transaksi): RedirectResponse
     {
+        $pembayaranTanggal = Pembayaran::where('jenis', 'supplier')
+            ->whereDate('tanggal_nota', $transaksi->tanggal)
+            ->whereIn('supplier_id', $transaksi->details()->select('supplier_id'))
+            ->exists();
+        if ($pembayaranTanggal) {
+            return back()->with('error', 'Nota ini termasuk pembayaran supplier gabungan per tanggal. Hapus pembayaran tersebut terlebih dahulu.');
+        }
+
         // Nota yang sudah punya pembayaran tidak boleh dihapus agar cashflow tetap konsisten
         if ($jumlah = $transaksi->pembayarans()->count()) {
             return back()->with('error', "{$transaksi->label} tidak dapat dihapus karena sudah memiliki {$jumlah} pembayaran. Hapus pembayarannya terlebih dahulu.");
@@ -137,6 +152,20 @@ class TransaksiController extends Controller
         }
 
         return view('rekapan.cetak', $data);
+    }
+
+    /** Hanya izinkan kembali ke rekapan aplikasi, dengan filter dan halaman asal. */
+    private function kembaliUrl(Request $request): string
+    {
+        $url = $request->input('kembali');
+        if (! is_string($url) || Str::before($url, '?') !== route('rekapan.index')) {
+            return route('rekapan.index');
+        }
+
+        parse_str(parse_url($url, PHP_URL_QUERY) ?? '', $query);
+        $filter = array_intersect_key($query, array_flip(['dari', 'sampai', 'klien_id', 'supplier_id', 'barang_id', 'status', 'page']));
+
+        return route('rekapan.index', array_filter($filter, fn ($v) => is_scalar($v)));
     }
 
     /** Data dropdown klien/supplier/barang untuk form & filter. */

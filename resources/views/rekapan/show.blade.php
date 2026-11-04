@@ -5,7 +5,7 @@
 
 @section('content')
     <div class="d-flex flex-wrap gap-2 justify-content-between mb-3 page-actions">
-        <a href="{{ route('rekapan.index') }}" class="btn btn-light"><i class="bi bi-arrow-left me-1"></i> Kembali</a>
+        <a href="{{ $kembali }}" class="btn btn-light"><i class="bi bi-arrow-left me-1"></i> Kembali</a>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('rekapan.cetak', $transaksi) }}" target="_blank" class="btn btn-light"><i class="bi bi-printer me-1"></i> Cetak</a>
             {{-- PDF: lihat dulu atau langsung simpan --}}
@@ -18,7 +18,7 @@
                     <li><a class="dropdown-item" href="{{ route('rekapan.cetak', [$transaksi, 'pdf' => 1, 'unduh' => 1]) }}"><i class="bi bi-download me-2"></i>Unduh PDF</a></li>
                 </ul>
             </div>
-            <a href="{{ route('rekapan.edit', $transaksi) }}" class="btn btn-light"><i class="bi bi-pencil-square me-1"></i> Edit</a>
+            <a href="{{ route('rekapan.edit', [$transaksi, 'kembali' => $kembali]) }}" class="btn btn-light"><i class="bi bi-pencil-square me-1"></i> Edit</a>
             <form method="POST" action="{{ route('rekapan.destroy', $transaksi) }}" class="form-delete" data-nama="nota {{ $transaksi->klien->nama }} tanggal {{ tanggal($transaksi->tanggal) }}">
                 @csrf @method('DELETE')
                 <button class="btn btn-light text-danger"><i class="bi bi-trash3 me-1"></i> Hapus</button>

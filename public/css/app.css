@@ -629,22 +629,22 @@ body select.is-invalid + .ts-wrapper .ts-control { border-color: var(--bs-form-i
     /* ---------- Tabel menjadi kartu ----------
        Label tiap sel diisi otomatis dari judul kolom oleh RB.labelTabel() (app.js) */
     .app-content .table-responsive { overflow: visible; }
-    .app-content .table > thead { display: none; }
-    .app-content .table,
-    .app-content .table > tbody,
-    .app-content .table > tfoot,
-    .app-content .table > tbody > tr,
-    .app-content .table > tfoot > tr { display: block; width: 100%; }
+    .app-content .table:not(.laporan-table) > thead { display: none; }
+    .app-content .table:not(.laporan-table),
+    .app-content .table:not(.laporan-table) > tbody,
+    .app-content .table:not(.laporan-table) > tfoot,
+    .app-content .table:not(.laporan-table) > tbody > tr,
+    .app-content .table:not(.laporan-table) > tfoot > tr { display: block; width: 100%; }
 
-    .app-content .table > tbody > tr {
+    .app-content .table:not(.laporan-table) > tbody > tr {
         padding: .85rem 1.1rem;
         border-bottom: 1px solid var(--rb-border);
     }
 
-    .app-content .table > tbody > tr:last-child { border-bottom: 0; }
+    .app-content .table:not(.laporan-table) > tbody > tr:last-child { border-bottom: 0; }
 
-    .app-content .table > tbody > tr > td,
-    .app-content .table > tfoot > tr > td {
+    .app-content .table:not(.laporan-table) > tbody > tr > td,
+    .app-content .table:not(.laporan-table) > tfoot > tr > td {
         display: flex;
         justify-content: flex-end;   /* isi sel (mis. "55 kg") tetap menyatu di kanan */
         align-items: center;
@@ -659,8 +659,8 @@ body select.is-invalid + .ts-wrapper .ts-control { border-color: var(--bs-form-i
         min-width: 0 !important;
     }
 
-    .app-content .table > tbody > tr > td::before,
-    .app-content .table > tfoot > tr > td.num::before {
+    .app-content .table:not(.laporan-table) > tbody > tr > td::before,
+    .app-content .table:not(.laporan-table) > tfoot > tr > td.num::before {
         content: attr(data-label);
         flex-shrink: 0;
         max-width: 48%;
@@ -679,23 +679,23 @@ body select.is-invalid + .ts-wrapper .ts-control { border-color: var(--bs-form-i
 
     /* Kolom sekunder (.hide-mobile) & nomor urut tidak perlu di HP; sel kosong disembunyikan */
     .app-content .table td.hide-mobile { display: none !important; }
-    .app-content .table > tbody > tr > td[data-label="#"]:not(.row-no),
-    .app-content .table > tbody > tr > td[data-label="No"] { display: none; }
-    .app-content .table > tbody > tr > td:empty,
-    .app-content .table > tfoot > tr > td:empty { display: none; }
+    .app-content .table:not(.laporan-table) > tbody > tr > td[data-label="#"]:not(.row-no),
+    .app-content .table:not(.laporan-table) > tbody > tr > td[data-label="No"] { display: none; }
+    .app-content .table:not(.laporan-table) > tbody > tr > td:empty,
+    .app-content .table:not(.laporan-table) > tfoot > tr > td:empty { display: none; }
 
     /* Baris pertama tiap kartu (no. nota / nama) sedikit ditonjolkan */
-    .app-content .table > tbody > tr > td:is(:first-child, [data-label="#"] + td, [data-label="No"] + td) { font-weight: 600; }
+    .app-content .table:not(.laporan-table) > tbody > tr > td:is(:first-child, [data-label="#"] + td, [data-label="No"] + td) { font-weight: 600; }
 
     /* Baris total (tfoot) */
-    .app-content .table > tfoot > tr {
+    .app-content .table:not(.laporan-table) > tfoot > tr {
         padding: .85rem 1.1rem;
         background: var(--rb-head-bg);
         border-top: 2px solid var(--rb-border);
         border-radius: 0 0 var(--rb-radius) var(--rb-radius);
     }
 
-    .app-content .table > tfoot > tr > td:not(.num) { justify-content: flex-start; font-weight: 700; }
+    .app-content .table:not(.laporan-table) > tfoot > tr > td:not(.num) { justify-content: flex-start; font-weight: 700; }
 
     /* Baris "tidak ada data" di tabel */
     .app-content .table td[colspan]:only-child { justify-content: center; }
@@ -915,6 +915,19 @@ body .ts-wrapper.multi .ts-control { flex-wrap: wrap; gap: .25rem; padding: .3re
 .legenda-warna { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .9rem; }
 .legenda-item { display: inline-flex; align-items: center; gap: .35rem; white-space: nowrap; }
 .legenda-kotak { display: inline-block; width: 14px; height: 11px; border: 1px solid; border-radius: 3px; }
+
+/* Tabel laporan tetap berupa kolom dengan ukuran seragam pada setiap rincian. */
+.app-content .laporan-scroll { overflow-x: auto; }
+.app-content .laporan-table { table-layout: fixed; width: 100%; min-width: calc(var(--jumlah-kolom, 8) * 120px); }
+.app-content .laporan-table > :is(thead, tbody, tfoot) > tr > :is(th, td) {
+    height: 3rem;
+    padding: .65rem .5rem;
+    vertical-align: middle;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+.app-content .laporan-table td[align="center"] { text-align: center; }
+.app-content .laporan-table > tbody > tr > td.sel-warna { border-radius: 0; }
 @media (max-width: 1279.98px) {
-    .app-content .table > tbody > tr > td.sel-warna { border-radius: 6px; padding-left: .5rem !important; padding-right: .5rem !important; }
+    .app-content .table:not(.laporan-table) > tbody > tr > td.sel-warna { border-radius: 6px; padding-left: .5rem !important; padding-right: .5rem !important; }
 }

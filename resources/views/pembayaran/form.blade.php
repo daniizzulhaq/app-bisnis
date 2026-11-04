@@ -6,6 +6,8 @@
 @php
     $jenis = old('jenis', $pembayaran->jenis);
     $dariNota = request()->filled('transaksi') || old('kembali_ke_nota');
+    $tanggalNota = old('tanggal_nota', $pembayaran->tanggal_nota?->toDateString());
+    $pilihanNota = $tanggalNota ? 'tanggal:'.$tanggalNota : old('transaksi_id', $pembayaran->transaksi_id);
 @endphp
 
 @section('content')
@@ -61,10 +63,11 @@
                     <div class="col-md-6">
                         <label for="transaksi_id" class="form-label">Kaitkan ke Nota <span class="text-secondary fw-normal">(opsional)</span></label>
                         <select id="transaksi_id" name="transaksi_id" class="@error('transaksi_id') is-invalid @enderror"
-                                data-selected="{{ old('transaksi_id', $pembayaran->transaksi_id) }}">
+                                data-selected="{{ $pilihanNota }}">
                             <option value="">Tanpa nota</option>
                         </select>
                         @error('transaksi_id') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
+                        @error('tanggal_nota') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
                         <div class="form-text" id="info-nota">Pilih klien/supplier untuk melihat daftar nota.</div>
                     </div>
 
@@ -78,7 +81,7 @@
                         <label for="jumlah" class="form-label">Jumlah <span class="text-danger">*</span></label>
                         <div class="input-group has-validation">
                             <span class="input-group-text">Rp</span>
-                            <input type="text" id="jumlah" name="jumlah" inputmode="numeric" value="{{ input_uang(old('jumlah', $pembayaran->jumlah)) }}"
+                            <input type="text" id="jumlah" name="jumlah" inputmode="numeric" value="{{ old('jumlah', input_uang($pembayaran->jumlah)) }}"
                                    class="form-control input-uang text-end @error('jumlah') is-invalid @enderror" placeholder="0" required>
                             @error('jumlah') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>
@@ -116,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const info = document.getElementById('info-nota');
     let terpilih = elNota.dataset.selected || '';
     let sisaNota = {};
+    let permintaan = 0;
 
     const tsNota = new TomSelect(elNota, {
         dropdownParent: 'body',
@@ -136,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /** Muat ulang daftar nota milik klien/supplier terpilih. */
     async function muatNota() {
+        const nomorPermintaan = ++permintaan;
         tsNota.clear(true);
         tsNota.clearOptions();
         tsNota.addOption({ value: '', text: 'Tanpa nota' });
@@ -149,20 +154,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         info.textContent = 'Memuat nota...';
-        const res = await fetch(`${urlNota}?jenis=${jenis()}&id=${id}&selected=${terpilih}`, { headers: { Accept: 'application/json' } });
-        const data = await res.json();
+        const params = new URLSearchParams({jenis: jenis(), id, selected: terpilih, pembayaran: @json($pembayaran->id ?? '')});
+        let data;
+        try {
+            const res = await fetch(`${urlNota}?${params}`, { headers: { Accept: 'application/json' } });
+            if (!res.ok) throw new Error('Gagal memuat nota');
+            data = await res.json();
+        } catch (error) {
+            if (nomorPermintaan === permintaan) info.textContent = 'Daftar nota gagal dimuat. Pilih kembali klien/supplier untuk mencoba lagi.';
+            return;
+        }
+        if (nomorPermintaan !== permintaan) return;
         data.forEach((n) => { tsNota.addOption(n); sisaNota[n.value] = n.sisa; });
         info.textContent = jenis() === 'klien'
             ? `${data.length} nota belum lunas. Status nota akan diperbarui otomatis.`
-            : `${data.length} nota berisi barang dari supplier ini.`;
+            : 'Total beli supplier ini dari semua klien digabung per tanggal nota. Jumlah otomatis terisi sesuai sisa tagihan jika masih kosong.';
 
         tsNota.setValue(data.some((n) => String(n.value) === String(terpilih)) ? terpilih : '', true);
         terpilih = '';
     }
 
-    // Saat nota klien dipilih dan jumlah masih kosong, isi otomatis dengan sisa tagihan
+    // Isi otomatis dengan sisa tagihan klien atau gabungan nota beli supplier per tanggal.
     tsNota.on('change', (val) => {
-        if (val && jenis() === 'klien' && !elJumlah.value && sisaNota[val]) {
+        if (val && !elJumlah.value && sisaNota[val]) {
             elJumlah.value = Math.round(sisaNota[val]).toLocaleString('id-ID');
         }
     });

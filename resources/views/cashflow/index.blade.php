@@ -6,6 +6,8 @@
 @section('content')
     @include('partials.filter-periode', ['kecuali' => ['tipe', 'kategori']])
 
+    @include('cashflow._modal')
+
     <div class="row g-3 mb-3">
         @foreach ([
             ['Saldo Awal', $saldoAwal, 'stat-blue', 'bi-safe'],

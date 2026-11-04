@@ -17,14 +17,14 @@
 
 @foreach ($rincian as $grup)
     @if ($mode === 'excel')
-        <table><tr><td></td></tr><tr><td><b>{{ $judulRincian }} {{ $grup->nama }}</b></td></tr></table>
+        <table><tr><td></td></tr><tr><td colspan="{{ $kolomTotal }}" align="center"><b>{{ $judulRincian }} {{ $grup->nama }}</b></td></tr></table>
     @elseif ($mode === 'pdf')
-        <h3>{{ $judulRincian }} {{ $grup->nama }}</h3>
+        <h3 style="text-align:center">{{ $judulRincian }} {{ $grup->nama }}</h3>
     @else
-        <div class="card mb-3"><div class="card-header">{{ $judulRincian }} · {{ $grup->nama }}</div><div class="table-responsive">
+        <div class="card mb-3"><div class="card-header text-center">{{ $judulRincian }} · {{ $grup->nama }}</div><div class="table-responsive laporan-scroll">
     @endif
 
-    <table class="{{ $html ? 'table table-hover align-middle tabel-rapat' : 'tabel' }}">
+    <table class="laporan-table {{ $html ? 'table table-hover align-middle' : 'tabel' }}" style="--jumlah-kolom:{{ $kolomTotal }}">
         <thead>
         <tr>
             <th>No</th>
@@ -51,7 +51,7 @@
                 </td>
                 @if ($kolomPihak === 'klien') <td>{{ $d->transaksi->klien->nama }}</td> @endif
                 @if ($kolomPihak === 'supplier') <td><x-supplier :nama="$d->supplier->nama" :warna="$d->supplier->warna" :mode="$mode" /></td> @endif
-                <td {!! sel_warna($d->supplier?->warna) !!}>{{ $d->barang->nama }}</td>
+                <td align="center" {!! sel_warna($d->supplier?->warna) !!}>{{ $d->barang->nama }}</td>
                 <td class="num">{{ $opsi->qty($d->qty, $d->barang->satuan, $mode, $d->pecahan ?? []) }}</td>
                 @if ($kolomSatuan) <td>{{ $d->barang->satuan }}</td> @endif
                 @if ($opsi->beli())

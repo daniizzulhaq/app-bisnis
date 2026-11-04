@@ -5,9 +5,9 @@ namespace App\Models;
 use App\Observers\PembayaranObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[ObservedBy(PembayaranObserver::class)]
 class Pembayaran extends Model
@@ -21,13 +21,14 @@ class Pembayaran extends Model
     public const METODE = ['tunai' => 'Tunai', 'transfer' => 'Transfer'];
 
     protected $fillable = [
-        'tanggal', 'jenis', 'klien_id', 'supplier_id', 'transaksi_id', 'jumlah', 'metode', 'keterangan',
+        'tanggal', 'jenis', 'klien_id', 'supplier_id', 'transaksi_id', 'tanggal_nota', 'jumlah', 'metode', 'keterangan',
     ];
 
     protected function casts(): array
     {
         return [
             'tanggal' => 'date',
+            'tanggal_nota' => 'date',
             'jumlah' => 'decimal:2',
         ];
     }

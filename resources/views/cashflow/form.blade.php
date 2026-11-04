@@ -44,7 +44,7 @@
                         <label for="nominal" class="form-label">Nominal <span class="text-danger">*</span></label>
                         <div class="input-group has-validation">
                             <span class="input-group-text">Rp</span>
-                            <input type="text" id="nominal" name="nominal" inputmode="numeric" value="{{ input_uang(old('nominal', $cashflow->nominal)) }}"
+                            <input type="text" id="nominal" name="nominal" inputmode="numeric" value="{{ old('nominal', input_uang($cashflow->nominal)) }}"
                                    class="form-control input-uang text-end @error('nominal') is-invalid @enderror" placeholder="0" required>
                             @error('nominal') <div class="invalid-feedback">{{ $message }}</div> @enderror
                         </div>

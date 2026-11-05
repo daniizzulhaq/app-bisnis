@@ -919,14 +919,34 @@ body .ts-wrapper.multi .ts-control { flex-wrap: wrap; gap: .25rem; padding: .3re
 /* Tabel laporan tetap berupa kolom dengan ukuran seragam pada setiap rincian. */
 .app-content .laporan-scroll { overflow-x: auto; }
 .app-content .laporan-table { table-layout: fixed; width: 100%; min-width: calc(var(--jumlah-kolom, 8) * 120px); }
+/* Semua tulisan & garis tebal, rata kiri, tinggi baris 0,75 cm */
+.app-content .laporan-table { border-collapse: collapse; }
 .app-content .laporan-table > :is(thead, tbody, tfoot) > tr > :is(th, td) {
-    height: 3rem;
-    padding: .65rem .5rem;
+    height: .75cm;
+    padding: .1rem .4rem;
     vertical-align: middle;
     white-space: normal;
     overflow-wrap: anywhere;
+    font-size: .8rem;
+    line-height: 1.2;
+    font-weight: 700;
+    text-align: left;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #1f2333;
+    border: 1.5px solid #1f2333;
 }
-.app-content .laporan-table td[align="center"] { text-align: center; }
+.app-content .laporan-table > :is(thead, tbody, tfoot) > tr > :is(td.text-danger) { color: var(--bs-danger) !important; }
+.app-content .laporan-table > :is(thead, tbody, tfoot) > tr > :is(td.text-success) { color: var(--bs-success) !important; }
+.app-content .laporan-table a { font-weight: 700; }
+.app-content .laporan-table .kol-no { width: 1cm; }
+.app-content .laporan-table .kol-tgl { width: 3.5cm; }
+/* Nama klien/supplier di atas tabel: lebih besar dari isi tabel */
+.laporan-judul { font-size: 1.15rem; font-weight: 700; color: var(--rb-text); margin-bottom: .5rem; }
+/* Jarak antar tabel laporan tiap klien/supplier: 3 cm */
+.laporan-blok + .laporan-blok { margin-top: 3cm; }
+.laporan-blok + .legenda-warna { margin-top: 1rem; }
+.laporan-blok .card { overflow: hidden; }
 .app-content .laporan-table > tbody > tr > td.sel-warna { border-radius: 0; }
 @media (max-width: 1279.98px) {
     .app-content .table:not(.laporan-table) > tbody > tr > td.sel-warna { border-radius: 6px; padding-left: .5rem !important; padding-right: .5rem !important; }

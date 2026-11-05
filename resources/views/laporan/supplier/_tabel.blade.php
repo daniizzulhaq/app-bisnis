@@ -3,6 +3,8 @@
     $uang = fn ($v) => $mode === 'excel' ? round((float) $v) : rupiah($v);
     $html = $mode === 'html';
     $hutang = $opsi->beli(); // kolom dibayar & sisa hutang relevan bila harga beli ditampilkan
+    $kolom = 4 + ($opsi->beli() ? 1 : 0) + ($opsi->jual() ? 1 : 0) + ($opsi->laba() ? 1 : 0) + ($hutang ? 2 : 0);
+    $w = isset($lebarKolom) ? $lebarKolom($kolom - 1, 1) : ''; // PDF: kolom selain No dibagi rata
 @endphp
 
 @if ($mode === 'excel')
@@ -13,20 +15,23 @@
     </table>
 @endif
 
-@if ($html) <div class="card mb-3"><div class="card-header">Ringkasan per Supplier</div><div class="table-responsive laporan-scroll"> @endif
-<table class="{{ $html ? 'table table-hover align-middle laporan-table' : 'tabel laporan-table' }}">
+{{-- Rincian barang per supplier di atas, jumlah keseluruhan paling bawah --}}
+@include('laporan._rincian', ['kolomPihak' => $opsi->tampilKlien ? 'klien' : null, 'judulRincian' => 'Barang dari'])
+
+@include('laporan._judul-ringkasan', ['adaRincian' => $rincian->isNotEmpty()])
+<table class="laporan-table {{ $html ? 'table align-middle' : 'tabel' }}" style="--jumlah-kolom:{{ $kolom }}">
     <thead>
     <tr>
-        <th>No</th>
-        <th>Supplier</th>
-        <th class="num">Jumlah Nota</th>
-        <th class="num">Total Qty</th>
-        @if ($opsi->beli()) <th class="num">Total Beli</th> @endif
-        @if ($opsi->jual()) <th class="num">Total Jual</th> @endif
-        @if ($opsi->laba()) <th class="num">Laba</th> @endif
+        <th class="kol-no">No</th>
+        <th {!! $w !!}>Supplier</th>
+        <th {!! $w !!}>Jumlah Nota</th>
+        <th {!! $w !!}>Total Qty</th>
+        @if ($opsi->beli()) <th {!! $w !!}>Total Beli</th> @endif
+        @if ($opsi->jual()) <th {!! $w !!}>Total Jual</th> @endif
+        @if ($opsi->laba()) <th {!! $w !!}>Laba</th> @endif
         @if ($hutang)
-            <th class="num">Dibayar (periode)</th>
-            <th class="num">Sisa Hutang s/d {{ tanggal($periode->sampai) }}</th>
+            <th {!! $w !!}>Dibayar (periode)</th>
+            <th {!! $w !!}>Sisa Hutang s/d {{ tanggal($periode->sampai) }}</th>
         @endif
     </tr>
     </thead>
@@ -36,49 +41,51 @@
             <td>{{ $loop->iteration }}</td>
             <td {!! sel_warna($r->warna) !!}>
                 @if ($html)
-                    <a href="{{ request()->fullUrlWithQuery(['supplier_id' => [$r->id]]) }}" class="text-decoration-none fw-semibold" title="Lihat rincian">
+                    <a href="{{ request()->fullUrlWithQuery(['supplier_id' => [$r->id]]) }}" class="text-decoration-none" title="Lihat rincian">
                         <x-supplier :nama="$r->nama" :warna="$r->warna" />
                     </a>
                 @else
                     <x-supplier :nama="$r->nama" :warna="$r->warna" :mode="$mode" />
                 @endif
             </td>
-            <td class="num">{{ $r->nota }}</td>
-            <td class="num">{{ $opsi->qty($r->qty, null, $mode) }}</td>
-            @if ($opsi->beli()) <td class="num">{{ $uang($r->total_beli) }}</td> @endif
-            @if ($opsi->jual()) <td class="num">{{ $uang($r->total_jual) }}</td> @endif
-            @if ($opsi->laba()) <td class="num {{ $html ? ($r->laba < 0 ? 'text-danger' : 'text-success') : '' }}">{{ $uang($r->laba) }}</td> @endif
+            <td>{{ $r->nota }}</td>
+            <td>{{ $opsi->qty($r->qty, null, $mode) }}</td>
+            @if ($opsi->beli()) <td>{{ $uang($r->total_beli) }}</td> @endif
+            @if ($opsi->jual()) <td>{{ $uang($r->total_jual) }}</td> @endif
+            @if ($opsi->laba()) <td class="{{ $html ? ($r->laba < 0 ? 'text-danger' : 'text-success') : '' }}">{{ $uang($r->laba) }}</td> @endif
             @if ($hutang)
-                <td class="num">{{ $uang($r->dibayar) }}</td>
-                <td class="num {{ $html && $r->sisa > 0 ? 'text-danger fw-semibold' : '' }}">{{ $uang($r->sisa) }}</td>
+                <td>{{ $uang($r->dibayar) }}</td>
+                <td class="{{ $html && $r->sisa > 0 ? 'text-danger' : '' }}">{{ $uang($r->sisa) }}</td>
             @endif
         </tr>
     @endforeach
     </tbody>
     <tfoot>
-    <tr class="{{ $html ? 'table-light fw-bold' : 'total' }}">
+    <tr class="{{ $html ? 'table-light' : 'total' }}">
         <td></td>
         <td><b>TOTAL</b></td>
-        <td class="num"></td>
-        <td class="num"><b>{{ $opsi->qty($total->qty, null, $mode) }}</b></td>
-        @if ($opsi->beli()) <td class="num"><b>{{ $uang($total->total_beli) }}</b></td> @endif
-        @if ($opsi->jual()) <td class="num"><b>{{ $uang($total->total_jual) }}</b></td> @endif
-        @if ($opsi->laba()) <td class="num"><b>{{ $uang($total->laba) }}</b></td> @endif
+        <td></td>
+        <td><b>{{ $opsi->qty($total->qty, null, $mode) }}</b></td>
+        @if ($opsi->beli()) <td><b>{{ $uang($total->total_beli) }}</b></td> @endif
+        @if ($opsi->jual()) <td><b>{{ $uang($total->total_jual) }}</b></td> @endif
+        @if ($opsi->laba()) <td><b>{{ $uang($total->laba) }}</b></td> @endif
         @if ($hutang)
-            <td class="num"><b>{{ $uang($total->dibayar) }}</b></td>
-            <td class="num"><b>{{ $uang($total->sisa) }}</b></td>
+            <td><b>{{ $uang($total->dibayar) }}</b></td>
+            <td><b>{{ $uang($total->sisa) }}</b></td>
         @endif
     </tr>
     </tfoot>
 </table>
-@if ($html) </div></div> @endif
+@include('laporan._penutup-ringkasan')
 
-@include('laporan._rincian', ['kolomPihak' => $opsi->tampilKlien ? 'klien' : null, 'judulRincian' => 'Barang dari'])
+@if ($rincian->isNotEmpty())
+    @include('laporan._legenda', ['legenda' => $rincian->flatMap(fn ($g) => $g->items->pluck('supplier'))])
+@endif
 
 @if ($html)
     <p class="small text-secondary mt-3 mb-0">
         <i class="bi bi-info-circle me-1"></i>
-        Klik nama supplier untuk melihat rincian barang. Pilih beberapa supplier di filter untuk menampilkan rinciannya sekaligus.
+        Rincian barang tiap supplier ditampilkan di atas, jumlah keseluruhan di bagian paling bawah. Klik nama supplier untuk melihat rincian satu supplier saja.
         Total qty menjumlahkan semua satuan.
         @if ($hutang)
             <br><b>Dibayar</b> = pembayaran ke supplier di dalam periode. <b>Sisa hutang</b> = seluruh pembelian dikurangi seluruh pembayaran sampai tanggal akhir periode

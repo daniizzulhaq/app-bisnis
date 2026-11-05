@@ -31,7 +31,7 @@
             <div class="col-md-6 col-xl-4">
                 <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
                     <label class="form-label mb-0" for="f-klien">Klien <span class="text-secondary fw-normal small">· bisa pilih beberapa</span></label>
-                    <button type="button" id="semua-klien" class="btn btn-light btn-sm">Semua klien</button>
+                    <button type="button" class="btn btn-light btn-sm pilih-semua" data-target="f-klien" title="Pilih semua klien">Semua klien</button>
                 </div>
                 <select id="f-klien" name="klien_id[]" multiple class="form-select tom-select" data-placeholder="Semua klien">
                     @foreach ($kliens as $k)
@@ -40,7 +40,10 @@
                 </select>
             </div>
             <div class="col-md-6 col-xl-4">
-                <label class="form-label" for="f-supplier">Supplier <span class="text-secondary fw-normal small">· bisa pilih beberapa</span></label>
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                    <label class="form-label mb-0" for="f-supplier">Supplier <span class="text-secondary fw-normal small">· bisa pilih beberapa</span></label>
+                    <button type="button" class="btn btn-light btn-sm pilih-semua" data-target="f-supplier" title="Pilih semua supplier">Semua supplier</button>
+                </div>
                 <select id="f-supplier" name="supplier_id[]" multiple class="form-select tom-select" data-placeholder="Semua supplier">
                     @foreach ($suppliers as $s)
                         <option value="{{ $s->id }}" data-warna="{{ $s->warna }}" @selected(in_array($s->id, $opsi->supplierIds))>{{ $s->nama }}</option>
@@ -99,12 +102,15 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('semua-klien').addEventListener('click', (event) => {
-        const select = document.getElementById('f-klien');
-        if (select.tomselect) select.tomselect.clear();
-        else [...select.options].forEach((option) => { option.selected = false; });
+    // "Semua klien" / "Semua supplier": pilih SEMUA opsi lalu terapkan, sehingga setiap
+    // klien/supplier tetap tampil di laporan walaupun tidak ada transaksi di periode ini.
+    document.querySelectorAll('.pilih-semua').forEach((btn) => btn.addEventListener('click', (event) => {
+        const select = document.getElementById(btn.dataset.target);
+        const semua = [...select.options].map((option) => option.value);
+        if (select.tomselect) select.tomselect.setValue(semua, true);
+        else [...select.options].forEach((option) => { option.selected = true; });
         event.currentTarget.form.requestSubmit();
-    });
+    }));
 });
 </script>
 @endpush

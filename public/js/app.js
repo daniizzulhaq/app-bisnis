@@ -51,7 +51,7 @@ RB.initTomSelect = (root = document) => {
     root.querySelectorAll('select.tom-select:not(.tomselected)').forEach((el) => {
         const multi = el.multiple;
         const isi = (data, esc) => RB.titikWarna(data.warna) + esc(data.text);
-        new TomSelect(el, {
+        const ts = new TomSelect(el, {
             // Dropdown dirender di <body> agar tidak terpotong oleh .table-responsive / card
             dropdownParent: 'body',
             create: false,
@@ -70,8 +70,18 @@ RB.initTomSelect = (root = document) => {
                 no_results: () => '<div class="no-results">Data tidak ditemukan</div>',
             },
         });
+        // Fokus tanpa menggulir halaman / tabel, agar layar tidak geser-geser saat memilih
+        ts.focus = function () {
+            if (this.isDisabled || this.isReadOnly) return;
+            this.ignoreFocus = true;
+            (this.control_input.offsetWidth ? this.control_input : this.focus_node).focus({ preventScroll: true });
+            setTimeout(() => { this.ignoreFocus = false; this.onFocus(); }, 0);
+        };
     });
 };
+
+/** Layar sentuh (HP/tablet): fokus otomatis memunculkan keyboard & menggeser layar, jadi dilewati. */
+RB.layarSentuh = () => window.matchMedia('(pointer: coarse)').matches;
 
 /**
  * Isi atribut data-label setiap sel dari judul kolom (<th>).

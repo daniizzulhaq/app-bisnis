@@ -97,7 +97,45 @@ class LaporanDashboardUserTest extends TestCase
         $this->assertContains('Brokoli', $values);
         $this->assertContains('Tomat', $values);
         $this->assertEquals(22, $sheet->getDefaultColumnDimension()->getWidth());
-        $this->assertEquals(36, $sheet->getDefaultRowDimension()->getRowHeight());
+        // Baris 0,75 cm, kolom No 1 cm & Tanggal 3,5 cm
+        $this->assertEqualsWithDelta(0.75 / 2.54 * 72, $sheet->getDefaultRowDimension()->getRowHeight(), 0.1);
+        $this->assertEqualsWithDelta(1, $sheet->getColumnDimension('A')->getWidth('cm'), 0.05);
+        $this->assertEqualsWithDelta(3.5, $sheet->getColumnDimension('B')->getWidth('cm'), 0.05);
+
+        // Sel tabel: tebal, bergaris, rata kiri. Rincian di atas, jumlah keseluruhan paling bawah.
+        $baris = collect($sheet->toArray())->map(fn ($r) => implode('|', array_filter($r, fn ($v) => $v !== null)));
+        $posRincian = $baris->search(fn ($r) => str_contains($r, 'Rincian Barang'));
+        $posTotal = $baris->search(fn ($r) => $r === 'Jumlah Keseluruhan');
+        $this->assertNotFalse($posRincian);
+        $this->assertGreaterThan($posRincian, $posTotal);
+        $sel = $sheet->getCell('A'.($posTotal + 2))->getStyle(); // header "No" tepat di bawah judul
+        $this->assertTrue($sel->getFont()->getBold());
+        $this->assertSame('medium', $sel->getBorders()->getTop()->getBorderStyle());
+        $this->assertSame('left', $sel->getAlignment()->getHorizontal());
+    }
+
+    public function test_semua_pihak_terpilih_tetap_tampil_walau_tanpa_transaksi(): void
+    {
+        // Klien & supplier tanpa transaksi di periode ini
+        $sepi = Klien::create(['nama' => 'Resto Sepi']);
+        $supSepi = Supplier::create(['nama' => 'Supplier Sepi']);
+        $periode = 'dari=2026-11-01&sampai=2026-11-30';
+
+        $res = $this->get("/laporan/klien?{$periode}&klien_id[]={$this->klien->id}&klien_id[]={$sepi->id}")->assertOk();
+        $this->assertEqualsCanonicalizing([$this->klien->id, $sepi->id], $res->viewData('rows')->pluck('id')->all());
+        $this->assertEqualsCanonicalizing([$this->klien->id, $sepi->id], $res->viewData('rincian')->pluck('id')->all());
+        $this->assertSame('Klien: Semua', $res->viewData('subjek'));
+
+        $res = $this->get("/laporan/supplier?{$periode}&supplier_id[]={$this->supplier->id}&supplier_id[]={$supSepi->id}")->assertOk();
+        $this->assertEqualsCanonicalizing([$this->supplier->id, $supSepi->id], $res->viewData('rows')->pluck('id')->all());
+        $this->assertEqualsCanonicalizing([$this->supplier->id, $supSepi->id], $res->viewData('rincian')->pluck('id')->all());
+
+        // Tanpa pilihan supplier: rincian semua supplier yang punya barang di periode ini
+        $this->assertSame([$this->supplier->id], $this->get("/laporan/supplier?{$periode}")->viewData('rincian')->pluck('id')->all());
+
+        foreach (['pdf', 'excel'] as $export) {
+            $this->get("/laporan/supplier?{$periode}&supplier_id[]={$this->supplier->id}&supplier_id[]={$supSepi->id}&export={$export}")->assertOk();
+        }
     }
 
     public function test_laporan_per_barang(): void

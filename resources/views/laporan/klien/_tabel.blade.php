@@ -3,6 +3,8 @@
     $uang = fn ($v) => $mode === 'excel' ? round((float) $v) : rupiah($v);
     $html = $mode === 'html';
     $piutang = $opsi->jual(); // kolom dibayar & sisa piutang relevan bila harga jual ditampilkan
+    $kolom = 3 + ($opsi->beli() ? 1 : 0) + ($opsi->jual() ? 1 : 0) + ($opsi->laba() ? 1 : 0) + ($piutang ? 2 : 0);
+    $w = isset($lebarKolom) ? $lebarKolom($kolom - 1, 1) : ''; // PDF: kolom selain No dibagi rata
 @endphp
 
 @if ($mode === 'excel')
@@ -13,19 +15,23 @@
     </table>
 @endif
 
-@if ($html) <div class="card mb-3"><div class="card-header">Ringkasan per Klien</div><div class="table-responsive laporan-scroll"> @endif
-<table class="{{ $html ? 'table table-hover align-middle laporan-table' : 'tabel laporan-table' }}">
+{{-- Rincian barang per klien di atas, jumlah keseluruhan paling bawah --}}
+{{-- Supplier hanya tampil bila harga beli ikut ditampilkan (laporan internal) --}}
+@include('laporan._rincian', ['kolomPihak' => $opsi->beli() ? 'supplier' : null, 'judulRincian' => 'Rincian Barang'])
+
+@include('laporan._judul-ringkasan', ['adaRincian' => $rincian->isNotEmpty()])
+<table class="laporan-table {{ $html ? 'table align-middle' : 'tabel' }}" style="--jumlah-kolom:{{ $kolom }}">
     <thead>
     <tr>
-        <th>No</th>
-        <th>Klien</th>
-        <th class="num">Jumlah Nota</th>
-        @if ($opsi->beli()) <th class="num">Total Beli</th> @endif
-        @if ($opsi->jual()) <th class="num">Total Jual</th> @endif
-        @if ($opsi->laba()) <th class="num">Laba</th> @endif
+        <th class="kol-no">No</th>
+        <th {!! $w !!}>Klien</th>
+        <th {!! $w !!}>Jumlah Nota</th>
+        @if ($opsi->beli()) <th {!! $w !!}>Total Beli</th> @endif
+        @if ($opsi->jual()) <th {!! $w !!}>Total Jual</th> @endif
+        @if ($opsi->laba()) <th {!! $w !!}>Laba</th> @endif
         @if ($piutang)
-            <th class="num">Dibayar (periode)</th>
-            <th class="num">Sisa Piutang s/d {{ tanggal($periode->sampai) }}</th>
+            <th {!! $w !!}>Dibayar (periode)</th>
+            <th {!! $w !!}>Sisa Piutang s/d {{ tanggal($periode->sampai) }}</th>
         @endif
     </tr>
     </thead>
@@ -35,46 +41,47 @@
             <td>{{ $loop->iteration }}</td>
             <td>
                 @if ($html)
-                    <a href="{{ request()->fullUrlWithQuery(['klien_id' => [$r->id]]) }}" class="fw-semibold text-decoration-none" title="Lihat rincian">{{ $r->nama }}</a>
+                    <a href="{{ request()->fullUrlWithQuery(['klien_id' => [$r->id]]) }}" class="text-decoration-none" title="Lihat rincian">{{ $r->nama }}</a>
                 @else
                     {{ $r->nama }}
                 @endif
             </td>
-            <td class="num">{{ $r->nota }}</td>
-            @if ($opsi->beli()) <td class="num">{{ $uang($r->total_beli) }}</td> @endif
-            @if ($opsi->jual()) <td class="num">{{ $uang($r->total_jual) }}</td> @endif
-            @if ($opsi->laba()) <td class="num {{ $html ? ($r->laba < 0 ? 'text-danger' : 'text-success') : '' }}">{{ $uang($r->laba) }}</td> @endif
+            <td>{{ $r->nota }}</td>
+            @if ($opsi->beli()) <td>{{ $uang($r->total_beli) }}</td> @endif
+            @if ($opsi->jual()) <td>{{ $uang($r->total_jual) }}</td> @endif
+            @if ($opsi->laba()) <td class="{{ $html ? ($r->laba < 0 ? 'text-danger' : 'text-success') : '' }}">{{ $uang($r->laba) }}</td> @endif
             @if ($piutang)
-                <td class="num">{{ $uang($r->dibayar) }}</td>
-                <td class="num {{ $html && $r->sisa > 0 ? 'text-danger fw-semibold' : '' }}">{{ $uang($r->sisa) }}</td>
+                <td>{{ $uang($r->dibayar) }}</td>
+                <td class="{{ $html && $r->sisa > 0 ? 'text-danger' : '' }}">{{ $uang($r->sisa) }}</td>
             @endif
         </tr>
     @endforeach
     </tbody>
     <tfoot>
-    <tr class="{{ $html ? 'table-light fw-bold' : 'total' }}">
+    <tr class="{{ $html ? 'table-light' : 'total' }}">
         <td></td>
         <td><b>TOTAL</b></td>
-        <td class="num"><b>{{ $total->nota }}</b></td>
-        @if ($opsi->beli()) <td class="num"><b>{{ $uang($total->total_beli) }}</b></td> @endif
-        @if ($opsi->jual()) <td class="num"><b>{{ $uang($total->total_jual) }}</b></td> @endif
-        @if ($opsi->laba()) <td class="num"><b>{{ $uang($total->laba) }}</b></td> @endif
+        <td><b>{{ $total->nota }}</b></td>
+        @if ($opsi->beli()) <td><b>{{ $uang($total->total_beli) }}</b></td> @endif
+        @if ($opsi->jual()) <td><b>{{ $uang($total->total_jual) }}</b></td> @endif
+        @if ($opsi->laba()) <td><b>{{ $uang($total->laba) }}</b></td> @endif
         @if ($piutang)
-            <td class="num"><b>{{ $uang($total->dibayar) }}</b></td>
-            <td class="num"><b>{{ $uang($total->sisa) }}</b></td>
+            <td><b>{{ $uang($total->dibayar) }}</b></td>
+            <td><b>{{ $uang($total->sisa) }}</b></td>
         @endif
     </tr>
     </tfoot>
 </table>
-@if ($html) </div></div> @endif
+@include('laporan._penutup-ringkasan')
 
-{{-- Supplier hanya tampil bila harga beli ikut ditampilkan (laporan internal) --}}
-@include('laporan._rincian', ['kolomPihak' => $opsi->beli() ? 'supplier' : null, 'judulRincian' => 'Rincian Barang'])
+@if ($rincian->isNotEmpty())
+    @include('laporan._legenda', ['legenda' => $rincian->flatMap(fn ($g) => $g->items->pluck('supplier'))])
+@endif
 
 @if ($html)
     <p class="small text-secondary mt-3 mb-0">
         <i class="bi bi-info-circle me-1"></i>
-        Rincian barang semua klien ditampilkan di bawah. Pilih klien di filter untuk membatasi rincian.
+        Rincian barang semua klien ditampilkan di atas, jumlah keseluruhan di bagian paling bawah. Pilih klien di filter untuk membatasi rincian.
         @if ($piutang)
             <br><b>Dibayar</b> = pembayaran klien di dalam periode. <b>Sisa piutang</b> = seluruh penjualan dikurangi seluruh pembayaran sampai tanggal akhir periode
             (dihitung per klien, tidak terpengaruh filter supplier).

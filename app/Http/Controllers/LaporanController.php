@@ -56,10 +56,14 @@ class LaporanController extends Controller
         ];
 
         // Ringkasan filter untuk judul, mis. "Hotel Mawar, Resto Melati · Supplier: Pak Darto"
+        // Bila semua dipilih cukup ditulis "Klien: Semua" agar judul tidak terlalu panjang
+        $ringkas = fn ($daftar, array $ids) => $daftar->isNotEmpty() && $daftar->pluck('id')->diff($ids)->isEmpty()
+            ? collect(['Semua'])
+            : $daftar->whereIn('id', $ids)->pluck('nama');
         $subjek = collect([
-            'Klien' => $pilihan['kliens']->whereIn('id', $opsi->klienIds)->pluck('nama'),
-            'Supplier' => $pilihan['suppliers']->whereIn('id', $opsi->supplierIds)->pluck('nama'),
-            'Barang' => $pilihan['barangs']->whereIn('id', $opsi->barangIds)->pluck('nama'),
+            'Klien' => $ringkas($pilihan['kliens'], $opsi->klienIds),
+            'Supplier' => $ringkas($pilihan['suppliers'], $opsi->supplierIds),
+            'Barang' => $ringkas($pilihan['barangs'], $opsi->barangIds),
         ])->filter(fn ($n) => $n->isNotEmpty())
             ->map(fn ($n, $label) => "{$label}: ".$n->implode(', '))
             ->implode(' · ') ?: null;
@@ -69,8 +73,10 @@ class LaporanController extends Controller
         $namaFile = Str::limit(Str::slug($judul.' '.$periode->dariStr().' '.$periode->sampaiStr().' '.($subjek ?? '')), 120, '');
 
         if ($request->input('export') === 'pdf') {
-            $pdf = Pdf::loadView('laporan.pdf', $data + ['mode' => 'pdf'])
-                ->setPaper('a4', $opsi->laba() || ($jenis !== 'klien' && $opsi->adaHarga()) ? 'landscape' : 'portrait');
+            $landscape = $opsi->laba() || ($jenis !== 'klien' && $opsi->adaHarga());
+            // Lebar isi halaman A4 (dikurangi margin kiri-kanan), untuk membagi lebar kolom tabel
+            $pdf = Pdf::loadView('laporan.pdf', $data + ['mode' => 'pdf', 'lebarIsi' => $landscape ? 28.0 : 19.3])
+                ->setPaper('a4', $landscape ? 'landscape' : 'portrait');
 
             return $request->boolean('unduh') ? $pdf->download($namaFile.'.pdf') : $pdf->stream($namaFile.'.pdf');
         }

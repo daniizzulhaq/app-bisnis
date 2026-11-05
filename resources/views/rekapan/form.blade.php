@@ -191,7 +191,8 @@
             }
             tampilSatuan();
             hitung();
-            row.querySelector('.inp-qty').focus();
+            // Lanjut ke qty tanpa menggulir layar (di HP dilewati agar keyboard tidak muncul tiba-tiba)
+            if (!RB.layarSentuh()) row.querySelector('.inp-qty').focus({ preventScroll: true });
         });
         tampilSatuan();
     }
@@ -209,7 +210,9 @@
         }
         RB.labelTabel();
         hitung();
-        pertama.querySelector('.sel-barang').tomselect?.focus();
+        // Tampilkan baris baru (gulir vertikal seperlunya), lalu fokus ke barang tanpa geser lagi
+        pertama.scrollIntoView({ block: 'nearest' });
+        if (!RB.layarSentuh()) pertama.querySelector('.sel-barang').tomselect?.focus();
     }
 
     const inpJumlah = document.getElementById('jumlah-baris');

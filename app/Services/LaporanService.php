@@ -46,8 +46,9 @@ class LaporanService
         if (! $o->supplierIds && ! $o->barangIds) {
             $ids = $ids->merge($bayar->keys())->merge($jualKum->keys());
         }
-        $ids = $ids->unique();
-        $nama = Klien::whereIn('id', $ids)->pluck('nama', 'id');
+        // Klien yang dipilih di filter selalu tampil, walaupun tidak ada transaksi di periode ini
+        $ids = $ids->merge($o->klienIds)->unique();
+        $nama = Klien::withTrashed()->whereIn('id', $ids)->pluck('nama', 'id');
 
         $rows = $ids->map(fn ($id) => (object) [
             'id' => $id,
@@ -56,8 +57,8 @@ class LaporanService
             'dibayar' => (float) ($bayar[$id] ?? 0),
             'sisa' => (float) ($jualKum[$id] ?? 0) - (float) ($bayarKum[$id] ?? 0),
         ])
-            // Sembunyikan klien tanpa aktivitas & tanpa sisa piutang
-            ->filter(fn ($r) => $r->nota || $r->dibayar || abs($r->sisa) > 0.009)
+            // Sembunyikan klien tanpa aktivitas & tanpa sisa piutang (kecuali dipilih di filter)
+            ->filter(fn ($r) => $r->nota || $r->dibayar || abs($r->sisa) > 0.009 || in_array($r->id, $o->klienIds, true))
             ->sortBy('nama')->values();
 
         return [
@@ -84,8 +85,9 @@ class LaporanService
         if (! $o->klienIds && ! $o->barangIds) {
             $ids = $ids->merge($bayar->keys())->merge($beliKum->keys());
         }
-        $ids = $ids->unique();
-        $supplier = Supplier::whereIn('id', $ids)->get(['id', 'nama', 'warna'])->keyBy('id');
+        // Supplier yang dipilih di filter selalu tampil, walaupun tidak ada transaksi di periode ini
+        $ids = $ids->merge($o->supplierIds)->unique();
+        $supplier = Supplier::withTrashed()->whereIn('id', $ids)->get(['id', 'nama', 'warna'])->keyBy('id');
 
         $rows = $ids->map(fn ($id) => (object) [
             'id' => $id,
@@ -95,12 +97,13 @@ class LaporanService
             'dibayar' => (float) ($bayar[$id] ?? 0),
             'sisa' => (float) ($beliKum[$id] ?? 0) - (float) ($bayarKum[$id] ?? 0),
         ])
-            ->filter(fn ($r) => $r->nota || $r->dibayar || abs($r->sisa) > 0.009)
+            ->filter(fn ($r) => $r->nota || $r->dibayar || abs($r->sisa) > 0.009 || in_array($r->id, $o->supplierIds, true))
             ->sortBy('nama')->values();
 
         return [
             'rows' => $rows,
-            'rincian' => $o->supplierIds ? $this->rincian($dari, $sampai, $o, 'supplier_id', $supplier->pluck('nama', 'id'), $o->tampilKlien) : collect(),
+            // Tanpa pilihan supplier: rincian semua supplier yang punya barang di periode ini
+            'rincian' => $this->rincian($dari, $sampai, $o, 'supplier_id', $supplier->pluck('nama', 'id'), $o->tampilKlien),
             'total' => $this->jumlahkan($rows, ['nota', 'qty', 'total_beli', 'total_jual', 'laba', 'dibayar', 'sisa']),
         ];
     }

@@ -20,10 +20,23 @@
         .legenda-item { display: inline-block; margin: 0 10px 3px 0; white-space: nowrap; }
         .legenda-kotak { display: inline-block; width: 10px; height: 8px; border: 1px solid; margin-right: 3px; vertical-align: -1px; }
         table.tabel tr.total td { background: #f5f6fa; font-weight: bold; }
-        table.laporan-table { table-layout: fixed; }
-        table.laporan-table th, table.laporan-table td { height: 24px; vertical-align: middle; overflow-wrap: break-word; }
+        /* Tabel laporan: semua tulisan & garis tebal, rata kiri, baris 0,75 cm */
+        table.laporan-table th, table.laporan-table td {
+            height: 0.75cm; padding: 1px 4px; vertical-align: middle; overflow-wrap: break-word;
+            font-size: 9.5px; font-weight: bold; text-align: left; border: 1.5px solid #1f2333;
+        }
+        table.laporan-table th { background: #eef1fe; }
+        table.laporan-table b { font-weight: bold; } /* cegah "bolder" yang jatuh ke font serif */
         table.laporan-table .num { white-space: normal; }
-        table.laporan-table td[align="center"] { text-align: center; }
+        /* Lebar = isi + padding & garis (+-0,25 cm): No total 1 cm, Tanggal total 3,5 cm */
+        table.laporan-table th.kol-no { width: 0.75cm; }
+        table.laporan-table th.kol-tgl { width: 3.25cm; }
+        /* Nama klien/supplier di atas tabel: lebih besar dari isi tabel */
+        .laporan-judul { font-size: 14px; font-weight: bold; margin: 0 0 6px; }
+        /* Jarak antar tabel laporan tiap klien/supplier */
+        .laporan-blok + .laporan-blok { margin-top: 3cm; }
+        .laporan-blok + .legenda { margin-top: 8px; }
+        table.laporan-table tr { page-break-inside: avoid; } /* baris tidak terpotong antar halaman */
         .footer { position: fixed; bottom: -10px; left: 0; right: 0; font-size: 8px; color: #8a8fa3; }
     </style>
 </head>
@@ -37,6 +50,12 @@
 <div class="muted" style="margin-bottom:10px">
     Periode {{ $periode->label() }}{{ $subjek ? ' · '.$subjek : '' }}
 </div>
+
+@php
+    // Lebar kolom selain No (1 cm) & Tanggal (3,5 cm) dibagi rata, agar ukuran kolom seragam di setiap tabel
+    // (0,25 cm = padding & garis tiap sel, tidak termasuk dalam "width")
+    $lebarKolom = fn (int $jumlahKolom, float $lebarTetap) => 'style="width: '.round(($lebarIsi - $lebarTetap) / max(1, $jumlahKolom) - 0.25, 2).'cm"';
+@endphp
 
 @if ($rows->isEmpty())
     <p>Tidak ada data pada periode ini.</p>

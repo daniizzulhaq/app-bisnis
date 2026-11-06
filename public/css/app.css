@@ -927,7 +927,8 @@ body .ts-wrapper.multi .ts-control { flex-wrap: wrap; gap: .25rem; padding: .3re
     vertical-align: middle;
     white-space: normal;
     overflow-wrap: anywhere;
-    font-size: .8rem;
+    font-size: .95rem;
+    font-family: "Times New Roman", Times, serif;
     line-height: 1.2;
     font-weight: 700;
     text-align: left;
@@ -942,7 +943,7 @@ body .ts-wrapper.multi .ts-control { flex-wrap: wrap; gap: .25rem; padding: .3re
 .app-content .laporan-table .kol-no { width: 1cm; }
 .app-content .laporan-table .kol-tgl { width: 3.5cm; }
 /* Nama klien/supplier di atas tabel: lebih besar dari isi tabel */
-.laporan-judul { font-size: 1.15rem; font-weight: 700; color: var(--rb-text); margin-bottom: .5rem; }
+.laporan-judul { font-family: "Times New Roman", Times, serif; font-size: 1.35rem; font-weight: 700; text-align: center; color: var(--rb-text); margin-bottom: .5rem; }
 /* Jarak antar tabel laporan tiap klien/supplier: 3 cm */
 .laporan-blok + .laporan-blok { margin-top: 3cm; }
 .laporan-blok + .legenda-warna { margin-top: 1rem; }

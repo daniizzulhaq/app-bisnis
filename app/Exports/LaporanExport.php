@@ -18,7 +18,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 class LaporanExport implements FromView, WithStyles, WithTitle
 {
     /** Gaya setiap sel tabel laporan: tulisan & garis tebal, rata kiri, tinggi baris 0,75 cm. */
-    private const GAYA_SEL = 'border: 1px medium #000000; font-weight: bold; text-align: left; vertical-align: center; word-wrap: break-word; height: 0.75cm';
+    private const GAYA_SEL = 'font-family: Times New Roman; font-size: 12; border: 1px medium #000000; font-weight: bold; text-align: left; vertical-align: center; word-wrap: break-word; height: 0.75cm';
 
     public function __construct(
         private string $view,

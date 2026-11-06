@@ -4,7 +4,7 @@
 --}}
 @if ($mode === 'excel')
     @if ($adaRincian) @include('laporan._spasi') @endif
-    <table class="judul-xl"><tr><td colspan="{{ $kolom }}" style="font-size: 14px; font-weight: bold; height: 0.9cm"><b>Jumlah Keseluruhan</b></td></tr></table>
+    <table class="judul-xl"><tr><td colspan="{{ $kolom }}" style="font-family: Times New Roman; font-size: 16px; font-weight: bold; height: 0.9cm; text-align: center"><b>Jumlah Keseluruhan</b></td></tr></table>
 @else
     <div class="laporan-blok">
     <div class="laporan-judul">Jumlah Keseluruhan</div>

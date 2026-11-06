@@ -20,7 +20,7 @@
 @foreach ($rincian as $grup)
     @if ($mode === 'excel')
         @unless ($loop->first) @include('laporan._spasi') @endunless
-        <table class="judul-xl"><tr><td colspan="{{ $kolomTotal }}" style="font-size: 14px; font-weight: bold; height: 0.9cm"><b>{{ $judulRincian }} {{ $grup->nama }}</b></td></tr></table>
+        <table class="judul-xl"><tr><td colspan="{{ $kolomTotal }}" style="font-family: Times New Roman; font-size: 16px; font-weight: bold; height: 0.9cm; text-align: center"><b>{{ $judulRincian }} {{ $grup->nama }}</b></td></tr></table>
     @else
         <div class="laporan-blok">
         <div class="laporan-judul">{{ $judulRincian }} {{ $grup->nama }}</div>
